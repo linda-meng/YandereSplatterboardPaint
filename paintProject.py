@@ -40,7 +40,9 @@ linesprite = transform.scale(image.load("images/linesprite.png"),(40,40))
 dropper = transform.scale(image.load("images/dropper.png"),(40,40))
 fancyA = transform.scale(image.load("images/A.png"),(40,40))
 roundedrect = transform.scale(image.load("images/roundrect.png"),(40,40))
+ellipsesprite = transform.scale(image.load("images/ellipse.png"),(40,40))
 dottedbox = transform.scale(image.load("images/dottedbox.gif"),(40,40))
+fillbucket = image.load("images/fillbucket.png")
 spraycan = transform.scale(image.load("images/spraypaint.png"),(40,40))
 crosscursor = transform.scale(image.load("images/crosscursor.gif"),(40,40))
 yunoface = transform.scale(image.load("images/yunoface.png"),(60,60))
@@ -652,6 +654,51 @@ class Shape(Tool):
             sx = min(self.sx,mx) #sx becomes smaller of startx and mouse-x
             sy = min(self.sy,my) #same idea as sx
             draw.ellipse(screen,self.col,(sx,sy,abs(self.sx-mx),abs(self.sy-my)),self.width)
+#-------------------------------------------Fill Tool
+class Fill(Tool):
+    #fills an area with a colour
+    def __init__(self):
+        self.icon = fillbucket
+        self.fcol = BLACK #fill colour - what the colour to change pixels into
+        self.ccol = WHITE #change colour - what colours to change
+    def lclick(self,screen):
+        global lcol
+        mx,my = mouse.get_pos()
+        self.fcol = lcol #sets fill colour to left mouse colour
+        self.ccol = screen.get_at((mx,my)) #sets change colour to where user clicked
+        tochange = set()#set of pixels to change
+        tochange.add((mx,my))
+        while len(tochange) > 0:
+            x,y = tochange.pop()
+            if 300 < x < 1100 and 50 < y < 650:
+                #changes the colour of all four directions
+                if screen.get_at((x,y)) == self.ccol:
+                    screen.set_at((x,y),self.fcol)
+                    tochange.add((x+1,y))
+                    tochange.add((x-1,y))
+                    tochange.add((x,y+1))
+                    tochange.add((x,y-1))
+                
+    def rclick(self,screen):
+        #same as left click, but uses right mouse colour instead
+        global rcol
+        self.fcol = rcol
+        self.ccol = screen.get_at((mx,my)) #sets change colour to where user clicked
+        tochange = set()#set of pixels to change
+        tochange.add((mx,my))
+        while len(tochange) > 0:
+            x,y = tochange.pop()
+            if 300 < x < 1100 and 50 < y < 650:
+                #changes the colour of all four directions
+                if screen.get_at((x,y)) == self.ccol:
+                    screen.set_at((x,y),self.fcol)
+                    tochange.add((x+1,y))
+                    tochange.add((x-1,y))
+                    tochange.add((x,y+1))
+                    tochange.add((x,y-1))
+    def drawsprite(self,screen):
+        mx,my = mouse.get_pos()
+        screen.blit(self.icon,(mx-40,my-40))
 #----------------BUTTON CLASS----------------#
 #this class is the class for all buttons in the program
 class Button():
@@ -699,10 +746,18 @@ class Button():
             currtool = self.func
         elif self.func == "font":
             #font change button
+            curtool = textool
+            for t in tools:
+                t.selected = False #makes all tools unselected
+            tools[5].selected = True #makes text tool selected
             textool.fontfamily = self.arg2
             textool.textbox.changefont(self.arg2,textool.textbox.fontsize) #changes fontfamily
         elif self.func == "fontsize":
             #fontsize change button
+            currtool = textool
+            for t in tools:
+                t.selected = False
+            tools[5].selected = True
             newfontsize = textool.fontsize + self.arg2
             newfontsize = min(99,newfontsize)
             newfontsize = max(5,newfontsize) #limits new font size
@@ -710,7 +765,17 @@ class Button():
             textool.textbox.changefont(textool.textbox.fontfamily,newfontsize) #changes fontsize
         elif self.func == "shape":
             #shape change button
+            currtool = shapetool
+            for t in tools:
+                t.selected = False
+            tools[8].selected = True
             shapetool.shape = self.arg2 #changes shapetool to shape
+            if self.arg2 == "ellipse":
+                tools[8].pic = ellipsesprite
+                shapetool.icon = ellipsesprite
+            elif self.arg2 == "rect":
+                tools[8].pic = roundedrect
+                shapetool.icon = roundedrect
         elif self.func == "color":
             #color change button
             mb = mouse.get_pressed()
@@ -738,6 +803,7 @@ textool = Text("comicsansms",15) #text tool
 shapetool = Shape() #shape tool
 selectool = Select() #select tool
 spraytool = Spray() #spray tool
+filltool = Fill() #fill tool
 yunostamp = Stamp(yunogasai) #yuno gasai stamp
 #DROP DOWN BOXES
 fontdropdown = DropDownBox(20,390,[Button("font",comicsans.render("Comic Sans MS",True,BLACK),20,410,"Change Font-Family",200,20,"comicsansms"),
@@ -752,15 +818,16 @@ fontsizebuttons = [Button("fontsize",comicsans.render(" <",True,BLACK),60,370,"C
                    Button("fontsize",comicsans.render(" >",True,BLACK),100,370,"Change fontsize",20,20,1)]
 #----TOOL VARIABLES----#
 currtool = penciltool #current tool
-tools = [Button(penciltool,pencilsprite,20,100,"1 pixel line that follows your mouse"),
-         Button(erasertool,eraser,20,150,"Gives you a second chance at artful Deadication"),
-         Button(brushtool,paintbrush,20,200,"Nice thick strokes"),
-         Button(spraytool,spraycan,20,250,"Colours random pixels at clicked location"),
-         Button(selectortool,dropper,20,300,"Change your mouse colour to colour at clicked location"),
-         Button(textool,fancyA,20,350,"Write some Deadicated text"),
-         Button(selectool,dottedbox,80,100,"Select an area and manipulate with Deadication"),
-         Button(linetool,linesprite,80,150,"Draw a line"),
-         Button(shapetool,roundedrect,80,200,"Draw a shape to give your Deadication some structure"),
+tools = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follows your mouse"),
+         Button(erasertool,eraser,20,150,"Eraser: Gives you a second chance at artful Deadication"),
+         Button(brushtool,paintbrush,20,200,"Brush: Nice thick strokes"),
+         Button(spraytool,spraycan,20,250,"Spray-paint: Colours random pixels at clicked location"),
+         Button(selectortool,dropper,20,300,"Colour selector: Change your mouse colour to colour at clicked location"),
+         Button(textool,fancyA,20,350,"Text tool: Write some Deadicated text"),
+         Button(selectool,dottedbox,80,100,"Select tool: Select an area and manipulate with Deadication"),
+         Button(linetool,linesprite,80,150,"Line tool: Draw a line"),
+         Button(shapetool,roundedrect,80,200,"Shape tool: Draw a shape to give your Deadication some structure"),
+         Button(filltool,fillbucket,80,250,"Fill tool: Fill an area up with a colour"),
          Button(yunostamp,yunoface,550,690,"Paste the cute yet scary Yuno Gasai",60,60)] #buttons of all tools user can press
 tools[0].selected = True #the penciltool button is selected, so I set it so
 #----CANVAS----#
