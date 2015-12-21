@@ -31,6 +31,10 @@ MAGENTA = (255,0,255)
 #FONTS
 comicsans = font.SysFont("comicsansms", 15)
 arial = font.SysFont("arial",15)
+timesnr = font.SysFont("timesnewroman",15)
+lucidaconsole = font.SysFont("lucidaconsole",15)
+impact = font.SysFont("impact",15)
+vladimirscript = font.SysFont("vladimirscript",15)
 titlefont = font.SysFont("comicsansms",25)
 #SPRITES AND IMAGES
 pencilsprite = transform.scale(image.load("images/pencil.png"),(40,40))
@@ -44,6 +48,7 @@ ellipsesprite = transform.scale(image.load("images/ellipse.png"),(40,40))
 dottedbox = transform.scale(image.load("images/dottedbox.gif"),(40,40))
 fillbucket = image.load("images/fillbucket.png")
 spraycan = transform.scale(image.load("images/spraypaint.png"),(40,40))
+ibeam = transform.scale(image.load("images/ibeam.png"),(40,40))
 crosscursor = transform.scale(image.load("images/crosscursor.gif"),(40,40))
 yunoface = transform.scale(image.load("images/yunoface.png"),(60,60))
 yunogasai = image.load("images/yunogasai.png")
@@ -460,7 +465,7 @@ class Selector(Tool):
 class Text(Tool):
     #writes text
     def __init__(self,fontfamily,fontsize):
-        self.icon = fancyA
+        self.icon = ibeam
         self.fontfamily = fontfamily
         self.fontsize = fontsize #sets font
         self.textbox = Textbox(0,0,0,0,fontfamily,fontsize,(0,0,0))
@@ -517,16 +522,39 @@ class Select(Tool):
         self.selectedbox = None #selected box by shape
         self.x,self.y,self.width,self.height = 0,0,0,0 #dimensions and co-ords of selected box
         self.dx,self.dy = 0,0 #difference in x and y between mouse and corner of selectedbox
+        self.op = 0 #option of size change the user tried (this is determined by where user clicks; each option affects different parts of the box, like either x or width, y or height, etc.)
+        #0 = No change; 1: change x and y; 2: change width and y; 3: change x and height; 4: change width and height;
+        #5 = change y; 6 = change height; 7 = change x; 8 = change width
     def lclick(self,screen):
         global cfiller
         mx,my = mouse.get_pos()
         if self.hasbox:
-            #if the box exists and user doesn't click it, the box disappears
-            if not Rect(self.x,self.y,self.width,self.height).collidepoint(mx,my):
+            #check if they press a size change point on the box
+            sizepoints = [(self.x-1,self.y-1),(self.x+self.width+1,self.y-1),
+                          (self.x-1,self.y+self.height+1),(self.x+self.width+1,self.y+self.height+1),
+                          (self.x+(self.width+1)//2,self.y-1),(self.x+(self.width+1)//2,self.y+self.height+1),
+                          (self.x-1,self.y+(self.height+1)//2),(self.x+self.width+1,self.y+(self.height+1)//2)] #points in which the size of the box can be altered
+            op = 0 #option user did for size change
+            self.op = 0
+            for x,y in sizepoints:
+                op += 1
+                if Rect(x-5,y-5,10,10).collidepoint((mx,my)):
+                    self.op = op
+                    break
+            if self.op != 0:
+                #if user tried to change size we move let the cont() method handle the rest
+                pass
+            elif not Rect(self.x,self.y,self.width,self.height).collidepoint(mx,my):
+                #if the box exists and user doesn't click it, the box disappears
+                try:
+                    self.selectedbox = transform.smoothscale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
+                except:
+                    self.selectedbox = transform.scale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
                 screen.blit(cfiller,(300,50))
                 self.hasbox = False
                 screen.blit(self.selectedbox,(self.x,self.y))
             else:
+                #if user did not try to change size we move the box
                 self.dx = mx-self.x
                 self.dy = my-self.y #sets difference between corner and mouse co-ord
         else:
@@ -556,18 +584,29 @@ class Select(Tool):
             self.selectedbox = screen.copy().subsurface(Rect(self.x,self.y,self.width,self.height)) #sets selected box to area
             draw.rect(screen,WHITE,(self.x,self.y,self.width,self.height)) #erases area where selected image is
             cfiller = screen.copy().subsurface(canvas)
-            draw.rect(screen,BLACK,(self.x-1,self.y-1,self.width+2,self.height+2),1)
             self.forming = False
     def cont(self,screen):
         global cfiller
         mx,my = mouse.get_pos()
         if self.hasbox:
-            screen.blit(cfiller,(300,50)) #makes sure box only appears once
-            self.x = mx-self.dx
-            self.y = my-self.dy
-            draw.rect(screen,BLACK,(self.x-1,self.y-1,self.width+2,self.height+2),1)
-            screen.blit(self.selectedbox,(self.x,self.y))
+            #if there is a box, the we move it or change size
+            if self.op == 0:
+                self.x = mx-self.dx
+                self.y = my-self.dy
+            else:
+                options = ["self.x,self.y,self.width,self.height=mx,my,self.width-(mx-self.x),self.height-(my-self.y)",
+                           "self.width,self.y,self.height=mx-self.x,my,self.height-(my-self.y)",
+                           "self.x,self.width,self.height=mx,self.width-(mx-self.x),my-self.y",
+                           "self.width,self.height=mx-self.x,my-self.y",
+                           "self.y,self.height=my,self.height-(my-self.y)",
+                           "self.height=my-self.y",
+                           "self.x,self.width=mx,self.width-(mx-self.x)",
+                           "self.width=mx-self.x"]
+                exec(options[self.op-1])
+                self.width,self.height = max(1,self.width),max(1,self.height) #makes sure width or height isn't 0
+                
         elif self.forming:
+            #if the box is forming, we draw a temporary black box
             self.width = abs(self.x - mx) #width of rect is absolute distance between mouse-x and start-x
             self.height = abs(self.y - my) #height of rect is same idea as width, but with y-coords
             #the following two if statements set start x and start y to mx and my if they are greater
@@ -577,12 +616,31 @@ class Select(Tool):
         #removes the box if use pressed outside canvas
         global screen
         global cfiller
-        if self.hasbox:
+        global lastclick
+        if self.hasbox and lastclick != "canvas":
+            #if the last click was not the canvas we turn off the tool
+            self.selectedbox = transform.smoothscale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
             screen.blit(cfiller,(300,50))
             self.hasbox = False
             screen.blit(self.selectedbox,(self.x,self.y))
+        elif self.hasbox:
+            #if the last click was the canvas, we continue drawing the box
+            pass
+    def keypress(self,screen,keypressed):
+        #handles key methods for a box
+        global boxcp
+        kp = key.get_pressed()
+        if kp[K_DELETE]:
+            #deletes box
+            self.hasbox = False
+        elif kp[K_c] and (kp[K_RCTRL] or kp[K_LCTRL]) and self.hasbox:
+            #copies box onto clipboard
+            print("C")
+            boxcp = (transform.smoothscale(self.selectedbox,(self.width,self.height)),(self.x,self.y)) #sets the clipboard's image and coordinates
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
+        draw.line(screen,BLACK,(mx,my-10),(mx,my+10),2)
+        draw.line(screen,BLACK,(mx-10,my),(mx+10,my),2)
         screen.blit(self.icon,(mx-20,my-20))
 #-------------------------------------------Spray Paint
 class Spray(Tool):
@@ -666,24 +724,27 @@ class Fill(Tool):
         mx,my = mouse.get_pos()
         self.fcol = lcol #sets fill colour to left mouse colour
         self.ccol = screen.get_at((mx,my)) #sets change colour to where user clicked
+        if self.fcol == self.ccol:
+            return 0 #does not run if the change colour is the same as the fill colour
         tochange = set()#set of pixels to change
         tochange.add((mx,my))
         while len(tochange) > 0:
             x,y = tochange.pop()
-            if 300 < x < 1100 and 50 < y < 650:
+            if 300 <= x <= 1100 and 50 <= y <= 650 and screen.get_at((x,y)) == self.ccol:
                 #changes the colour of all four directions
-                if screen.get_at((x,y)) == self.ccol:
-                    screen.set_at((x,y),self.fcol)
-                    tochange.add((x+1,y))
-                    tochange.add((x-1,y))
-                    tochange.add((x,y+1))
-                    tochange.add((x,y-1))
+                screen.set_at((x,y),self.fcol)
+                tochange.add((x+1,y))
+                tochange.add((x-1,y))
+                tochange.add((x,y+1))
+                tochange.add((x,y-1))
                 
     def rclick(self,screen):
         #same as left click, but uses right mouse colour instead
         global rcol
         self.fcol = rcol
         self.ccol = screen.get_at((mx,my)) #sets change colour to where user clicked
+        if self.fcol == self.ccol:
+            return 0 #does not run if the change colour is the same as the fill colour
         tochange = set()#set of pixels to change
         tochange.add((mx,my))
         while len(tochange) > 0:
@@ -711,11 +772,12 @@ class Button():
         self.y = y
         self.pic = pic #picture of button
         self.highlighted = False #is button being hovered over or held on?
-        self.selected = False #is this the current tool? (only applies to tool buttons)
         self.toolbit = toolbit
+        self.selected = False #is this button selected (only applies to drop down boxes' buttons)
         self.arg2 = arg2 #2nd argument for button - optional. Tool buttons don't use this
     def display(self,screen):
         #displays button
+        global currtool
         if self.highlighted:
             dispcol = RED
         else:
@@ -725,7 +787,7 @@ class Button():
             screen.blit(self.pic,[self.x,self.y])
         elif type(self.pic) == Rect:
             draw.rect(screen,self.arg2,self.pic)
-        if self.selected:
+        if self.func == currtool or self.selected:
             #If it's the selected tool, the border of the button is red, otherwise it's black
             draw.rect(screen,RED,(self.x,self.y,self.width,self.height),1)
         else:
@@ -746,18 +808,12 @@ class Button():
             currtool = self.func
         elif self.func == "font":
             #font change button
-            curtool = textool
-            for t in tools:
-                t.selected = False #makes all tools unselected
-            tools[5].selected = True #makes text tool selected
+            currtool = textool
             textool.fontfamily = self.arg2
             textool.textbox.changefont(self.arg2,textool.textbox.fontsize) #changes fontfamily
         elif self.func == "fontsize":
             #fontsize change button
             currtool = textool
-            for t in tools:
-                t.selected = False
-            tools[5].selected = True
             newfontsize = textool.fontsize + self.arg2
             newfontsize = min(99,newfontsize)
             newfontsize = max(5,newfontsize) #limits new font size
@@ -766,9 +822,6 @@ class Button():
         elif self.func == "shape":
             #shape change button
             currtool = shapetool
-            for t in tools:
-                t.selected = False
-            tools[8].selected = True
             shapetool.shape = self.arg2 #changes shapetool to shape
             if self.arg2 == "ellipse":
                 tools[8].pic = ellipsesprite
@@ -787,7 +840,7 @@ class Button():
         #displays the toolbit so that user can know what button's tool does
         global comicsans
         mx,my = mouse.get_pos()
-        draw.rect(screen,BLACK,(mx,my-35,500,35))
+        draw.rect(screen,BLACK,(mx,my-35,comicsans.render(self.toolbit,True,BLOODRED).get_width()+20,35))
         screen.blit(comicsans.render(self.toolbit,True,BLOODRED),(mx+5,my-30))
 
 #MOUSE COLOURS
@@ -807,11 +860,15 @@ filltool = Fill() #fill tool
 yunostamp = Stamp(yunogasai) #yuno gasai stamp
 #DROP DOWN BOXES
 fontdropdown = DropDownBox(20,390,[Button("font",comicsans.render("Comic Sans MS",True,BLACK),20,410,"Change Font-Family",200,20,"comicsansms"),
-                                   Button("font",arial.render("Arial",True,BLACK),20,430,"Change Font-Family",200,20,"arial")],"SELECT FONT")
+                                   Button("font",arial.render("Arial",True,BLACK),20,430,"Change Font-Family",200,20,"arial"),
+                                   Button("font",timesnr.render("Times New Roman",True,BLACK),20,450,"Change Font-Family",200,20,"timesnewroman"),
+                                   Button("font",lucidaconsole.render("Lucida Console",True,BLACK),20,470,"Change Font-Family",200,20,"lucidaconsole"),
+                                   Button("font",impact.render("Impact",True,BLACK),20,490,"Change Font-Family",200,20,"impact"),
+                                   Button("font",vladimirscript.render("Vladimir Script",True,BLACK),20,510,"Change Font-Family",200,20,"vladimirscript")],"SELECT FONT")
 shapedropdown = DropDownBox(120,200,[Button("shape",comicsans.render("Rectangle",True,BLACK),120,220,"Change Shape",170,20,"rect"),
                                      Button("shape",comicsans.render("Ellipse",True,BLACK),120,240,"Change Shape",170,20,"ellipse")],"CHANGE SHAPE")
 #^drop down box for fonts
-fontdropdown.items[0].selected = True #sets first item in dropdownboxes to be selected
+fontdropdown.items[0].selected = True
 shapedropdown.items[0].selected = True
 #Fontsize buttons
 fontsizebuttons = [Button("fontsize",comicsans.render(" <",True,BLACK),60,370,"Change fontsize",20,20,-1),
@@ -827,11 +884,11 @@ tools = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follow
          Button(selectool,dottedbox,80,100,"Select tool: Select an area and manipulate with Deadication"),
          Button(linetool,linesprite,80,150,"Line tool: Draw a line"),
          Button(shapetool,roundedrect,80,200,"Shape tool: Draw a shape to give your Deadication some structure"),
-         Button(filltool,fillbucket,80,250,"Fill tool: Fill an area up with a colour"),
+         Button(filltool,fillbucket,80,250,"Fill tool: Fill an area up with a colour - Warning: Uses a lot of CPU"),
          Button(yunostamp,yunoface,550,690,"Paste the cute yet scary Yuno Gasai",60,60)] #buttons of all tools user can press
-tools[0].selected = True #the penciltool button is selected, so I set it so
 #----CANVAS----#
 canvas = Rect(300,50,800,600) #canvas rect
+draw.rect(screen,BLACK,(299,49,802,602)) #draws canvas border
 draw.rect(screen,WHITE,canvas) #draws canvas
 cfiller = screen.copy().subsurface(canvas) #canvas filler
 #------BACKGROUND------#
@@ -870,7 +927,7 @@ lastclick = "" #keeps track of last click
 filler = screen.copy() #screen filler - used for mouse sprites and toolbits and other temporary pop-ups
 mem = [] #memory for previous saves for the undo function
 mem2 = [] #memory for saves removed by the undo function for the redo function
-
+boxcp = None #clipboard for boxes (created by the select tool)
 #----MAIN LOOP----#
 while running:
     screen.blit(filler,(0,0)) #fills the screen to hide toolbit, mouse sprites and other pop-ups
@@ -899,7 +956,7 @@ while running:
                                 mem.append(screen.copy()) #adds a screenshot to the undo list memory before the user's change to the canvas                            
                         elif type(currtool) == Select:
                             if not currtool.hasbox:
-                                #makes sure moving a selected box doesn't proc this
+                                #makes sure moving a selected box doesn't proc memory addition
                                 mem2 = [] #makes the redo option empty as it shouldn't do anything once new data is added to the screen
                                 mem.append(screen.copy()) #adds a screenshot to the undo list memory before the user's change to the canvas  
                         else:
@@ -910,9 +967,6 @@ while running:
                     elif mb[2]:
                         currtool.rclick(screen) #calls tool's right click method
                 screen.set_clip(None)
-            elif palrect.collidepoint(mx,my):
-                #if user clicks palette
-                lastclick = "palette"
             elif fontdropdown.mainrect.collidepoint(mx,my) or (fontdropdown.menudown and fontdropdown.menurect.collidepoint(mx,my)):
                 #if user clicks font drop down menu
                 lastclick = "fontdropdown"
@@ -921,6 +975,9 @@ while running:
                 #if user clicks shape drop down menu
                 lastclick = "shapedropdown"
                 shapedropdown.clickon(screen)
+            elif palrect.collidepoint(mx,my):
+                #if user clicks palette
+                lastclick = "palette"
             else:
                 #if user doesn't click palette or canvas
                 lastclick = "" #set last click to "" (which means everything except canvas and palette)
@@ -937,13 +994,8 @@ while running:
                 for t in tools:
                     if t.istouch():
                         if t.func != currtool:
-                            #if the tool button clicked is not the current tool button, it becomes unselected and the new one becomes selected
-                            for t2 in tools:
-                                if t2.func == currtool:
-                                    t2.selected = False
-                                    break
+                            #tool button clicked
                             t.clickon(screen)
-                            t.selected = True
                         break
             if lastclick != "fontdropdown":
                 fontdropdown.menudown = False #turns off menu in fontdropdown if it was not clicked
@@ -996,7 +1048,7 @@ while running:
                     else:
                         ext = ".jpg"
                     image.save(screen.copy().subsurface(canvas), loadname + ext)
-                mouse.set_visible(False)   
+                mouse.set_visible(False)
             elif kp[K_o] and (kp[K_LCTRL] or kp[K_RCTRL]):
                 #if user presses CTRL-O will open a file and paste it onto canvas
                 if not canundo:
@@ -1004,7 +1056,7 @@ while running:
                         currtool.hasbox = False
                     elif type(currtool) == Text:
                         currtool.hastextbox = False
-
+                
                 loadname = filedialog.askopenfilename()
                 mouse.set_visible(True)
                 if loadname:
@@ -1022,10 +1074,38 @@ while running:
                         else:
                             height = (min(opened_image.get_height(),600))
                             width = (int(height*img_ratio))
-                        screen.blit(transform.scale(opened_image,(width,height)),(300,50))
+                        currtool = selectool #changes current tool to select tool
+                        currtool.hasbox = True
+                        currtool.selectedbox = transform.scale(opened_image,(width,height)) #makes opened image the box's image
+                        currtool.x,currtool.y,currtool.width,currtool.height = 300,50,width,height #creating a select box around uploaded image
                     else:
                         print("Invalid image")
                 mouse.set_visible(False)
+            elif kp[K_v] and (kp[K_LCTRL] or kp[K_RCTRL]):
+                #CTRL-V
+                #pastes clipboard image
+                if boxcp != None:
+                    screen.set_clip(canvas)
+                    if selectool.hasbox:
+                        #if we have a select box, we paste the image in there instead
+                        if selectool.selectedbox != boxcp[0]:
+                            #if the current selection is not the clipboard, we paste it to ensure it isn't lost
+                            screen.blit(selectool.selectedbox,(selectool.x,selectool.y))
+                            cfiller = screen.copy().subsurface(canvas)
+                        selectool.selectedbox = boxcp[0]
+                        selectool.width = boxcp[0].get_width()
+                        selectool.height = boxcp[0].get_height()
+                    else:
+                        #we blit the image to where we copied it from in a select box
+                        selectool.selectedbox = boxcp[0]
+                        selectool.x = boxcp[1][0]
+                        selectool.y = boxcp[1][1]
+                        selectool.width = boxcp[0].get_width()
+                        selectool.height = boxcp[0].get_height() #setting up the box to contain the image
+                        selectool.hasbox = True
+                        cfiller = screen.copy().subsurface(canvas)
+                        currtool = selectool
+                    screen.set_clip(None)
             else:
                 currtool.keypress(screen,e.unicode)#uses current tool's keypress method
             
@@ -1106,7 +1186,13 @@ while running:
     if type(currtool) == Select:
         if currtool.hasbox:
             draw.rect(screen,BLACK,(currtool.x-1,currtool.y-1,currtool.width+2,currtool.height+2),1)
-            screen.blit(currtool.selectedbox,(currtool.x,currtool.y))
+            screen.blit(transform.smoothscale(currtool.selectedbox,(currtool.width,currtool.height)),(currtool.x,currtool.y))
+            sizepoints = [(currtool.x-1,currtool.y-1),(currtool.x+currtool.width+1,currtool.y-1),
+                          (currtool.x-1,currtool.y+currtool.height+1),(currtool.x+currtool.width+1,currtool.y+currtool.height+1),
+                          (currtool.x+(currtool.width+1)//2,currtool.y-1),(currtool.x+(currtool.width+1)//2,currtool.y+currtool.height+1),
+                          (currtool.x-1,currtool.y+(currtool.height+1)//2),(currtool.x+currtool.width+1,currtool.y+(currtool.height+1)//2)] #points in which the size of the box can be altered
+            for x,y in sizepoints:
+                draw.rect(screen,(255,50,50,150),(x-5,y-5,10,10),1)
     #HANDLES DROP DOWN MENUS
     if fontdropdown.menudown:
         for i in fontdropdown.items:
@@ -1135,4 +1221,3 @@ while running:
         mouse.set_visible(True)
     display.flip()
 quit()
-        
