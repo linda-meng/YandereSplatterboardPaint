@@ -50,11 +50,18 @@ fillbucket = image.load("images/fillbucket.png")
 spraycan = transform.scale(image.load("images/spraypaint.png"),(40,40))
 ibeam = transform.scale(image.load("images/ibeam.png"),(40,40))
 crosscursor = transform.scale(image.load("images/crosscursor.gif"),(40,40))
-yunoface = transform.scale(image.load("images/yunoface.png"),(60,60))
+yunoface = transform.smoothscale(image.load("images/yunoface.png"),(60,60))
 yunogasai = image.load("images/yunogasai.png")
+kotonohaface = transform.smoothscale(image.load("images/kotonoha.png"),(60,60))
+kotonohakatsura = transform.smoothscale(image.load("images/kotonohakatsura.png"),(360,400))
+lucyface = transform.smoothscale(image.load("images/lucyface.png"),(60,60))
+lucy = transform.smoothscale(image.load("images/lucy.png"),(280,400))
+inoriface = transform.smoothscale(image.load("images/inoriface.png"),(60,60))
+inoriyuzuriha = transform.smoothscale(image.load("images/inoriyuzuriha.png"),(280,400))
+yandereinori = transform.scale(image.load("images/yandereinori.png"),(280,400))
 #SETUP
 root = Tk()
-root.withdraw()
+root.withdraw() #makes sure file dialog box disappears after it closes
 screen = display.set_mode((1200,750))
 screen.fill(PINK)
 display.set_caption("YANDERE SPLATTERBOARD - PAINT PROGRAM BY YOU ZHOU ~~~~~~GREAT ART TAKES DEADICATION~~~~~~")
@@ -347,52 +354,6 @@ class Brush(Tool):
             self.col = lcol
         draw.circle(screen,self.col,(mx,my),self.size) #draws circle to show user how big brush is
         screen.blit(self.icon,(mx,my-40))
-#-------------------------------------------Stamp
-class Stamp(Tool):
-    #stamps images
-    def __init__(self,img,img2=False):
-        self.img = img #image the stamp will stamp
-        self.width = self.img.get_width() #dimensions of stamp
-        self.height = self.img.get_height()
-        self.ratio = self.width/self.height #width:height ratio
-        if not img2:
-            self.img2 = img #image the stamp stamps when right clicked - default is current stamp
-        else:
-            self.img2 = img2
-        self.icon = self.img
-    def lclick(self,screen):
-        #pastes image 1 at the middle on the mouse
-        mx,my = mouse.get_pos()
-        screen.blit(transform.scale(self.img,(self.width,self.height)),(mx-self.width/2,my-self.height/2))
-    def rclick(self,screen):
-        #pastes image 2 at the middle on the mouse
-        mx,my = mouse.get_pos()
-        screen.blit(transform.scale(self.img2,(self.width,self.height)),(mx-self.width//2,my-self.height//2))
-    def scroll(self,screen,forward=True):
-        if forward:
-            #makes image smaller
-            if min(self.width,self.height) > 20:
-                #makes sure image is at least 20px wide and 20px high
-                if self.width <= self.height:
-                    self.width -= 3
-                    self.height = int(self.width/self.ratio)
-                else:
-                    self.height -= 3
-                    self.width = int(self.height*self.ratio)
-        else:
-            #makes image bigger
-            if max(self.width,self.height) < 1024:
-                #limits image width and height at 1024px
-                if self.width >= self.height:
-                    self.width += 3
-                    self.height = int(self.width/self.ratio)
-                else:
-                    self.height += 3
-                    self.width = int(self.height*self.ratio)
-        self.icon = transform.scale(self.img,(self.width,self.height)) #sets icon to have same size as new image
-    def drawsprite(self,screen):
-        mx,my = mouse.get_pos()
-        screen.blit(self.icon,(mx-self.width//2,my-self.height//2))
 #-------------------------------------------Line Tool
 class Line(Tool):
     #draws a line
@@ -486,7 +447,7 @@ class Text(Tool):
         global rcol
         mx,my = mouse.get_pos()
         if self.hastextbox:
-            #turns of text box if we have one
+            #turns off text box if we have one
             self.hastextbox = False
             currtool.textbox.drawtext(screen)
         else:
@@ -498,7 +459,11 @@ class Text(Tool):
         #it allows the tool to interact with the user's keyboard
         if self.hastextbox:
             kp = key.get_pressed()
-            if kp[K_RETURN]:
+            if kp[K_RETURN] and (kp[K_LCTRL] or kp[K_RCTRL]):
+                #finishes up the textbox when CTRL-Enter
+                self.hastextbox = False
+                currtool.textbox.drawtext(screen)
+            elif kp[K_RETURN]:
                 #adds a new line if the RETURN button is pressed
                 self.textbox.newline()
             else:
@@ -512,6 +477,9 @@ class Text(Tool):
         if self.hastextbox:
             self.hastextbox = False
             currtool.textbox.drawtext(screen)
+    def drawsprite(self,screen):
+        mx,my = mouse.get_pos()
+        screen.blit(self.icon,(mx-20,my-10))
 #-------------------------------------------Select Tool
 class Select(Tool):
     #selects an area and makes it moveable
@@ -635,11 +603,14 @@ class Select(Tool):
             self.hasbox = False
         elif kp[K_c] and (kp[K_RCTRL] or kp[K_LCTRL]) and self.hasbox:
             #copies box onto clipboard
-            print("C")
+            boxcp = (transform.smoothscale(self.selectedbox,(self.width,self.height)),(self.x,self.y)) #sets the clipboard's image and coordinates
+        elif kp[K_x] and (kp[K_RCTRL] or kp[K_LCTRL]) and self.hasbox:
+            #cuts box onto clipboard
+            self.hasbox = False
             boxcp = (transform.smoothscale(self.selectedbox,(self.width,self.height)),(self.x,self.y)) #sets the clipboard's image and coordinates
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
-        draw.line(screen,BLACK,(mx,my-10),(mx,my+10),2)
+        draw.line(screen,BLACK,(mx,my-10),(mx,my+10),2) #drawing crosshairs
         draw.line(screen,BLACK,(mx-10,my),(mx+10,my),2)
         screen.blit(self.icon,(mx-20,my-20))
 #-------------------------------------------Spray Paint
@@ -711,7 +682,7 @@ class Shape(Tool):
         elif self.shape == "ellipse":
             sx = min(self.sx,mx) #sx becomes smaller of startx and mouse-x
             sy = min(self.sy,my) #same idea as sx
-            draw.ellipse(screen,self.col,(sx,sy,abs(self.sx-mx),abs(self.sy-my)),self.width)
+            draw.ellipse(screen,self.col,(sx,sy,abs(self.sx-mx),abs(self.sy-my)),min(abs(self.sy-my)//2,abs(self.sx-mx)//2,abs(self.width)))
 #-------------------------------------------Fill Tool
 class Fill(Tool):
     #fills an area with a colour
@@ -760,6 +731,68 @@ class Fill(Tool):
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
         screen.blit(self.icon,(mx-40,my-40))
+#-------------------------------------------Stamp
+class Stamp(Tool):
+    #stamps images
+    def __init__(self,img,img2=False):
+        self.img = img #image the stamp will stamp
+        self.width = self.img.get_width() #dimensions of stamp
+        self.height = self.img.get_height()
+        self.ratio = self.width/self.height #width:height ratio
+        if not img2:
+            self.img2 = img #image the stamp stamps when right clicked - default is current stamp
+        else:
+            self.img2 = img2
+        self.width2 = self.img2.get_width()
+        self.height2 = self.img2.get_height()
+        self.ratio2 = self.width2/self.height2 #width:height ratio for image 2
+        self.icon = self.img
+    def lclick(self,screen):
+        #pastes image 1 at the middle on the mouse
+        mx,my = mouse.get_pos()
+        screen.blit(transform.smoothscale(self.img,(self.width,self.height)),(mx-self.width/2,my-self.height/2))
+    def rclick(self,screen):
+        #pastes image 2 at the middle on the mouse
+        mx,my = mouse.get_pos()
+        screen.blit(transform.smoothscale(self.img2,(self.width2,self.height2)),(mx-self.width2//2,my-self.height2//2))
+    def scroll(self,screen,forward=True):
+        if forward:
+            #makes image smaller
+            if min(self.width,self.height) > 20 and min(self.width2,self.height2) > 20:
+                #limits the image size so that both height and width can be no lower than 18
+                if self.width <= self.height:
+                    self.width -= 3
+                    self.height = int(self.width/self.ratio)
+                else:
+                    self.height -= 3
+                    self.width = int(self.height*self.ratio)
+                #limits the image2 size so that both height and width can be no lower than 18
+                if self.width2 <= self.height:
+                    self.width2 -= 3
+                    self.height2 = int(self.width2/self.ratio2)
+                else:
+                    self.height2 -= 3
+                    self.width2 = int(self.height2*self.ratio2)
+        else:
+            #makes image bigger
+            if max(self.width,self.height) < 1024:
+                #limits image width and height at 1024px
+                if self.width >= self.height:
+                    self.width += 3
+                    self.width2 += 3
+                    self.height = int(self.width/self.ratio)
+                    self.height2 = int(self.width2/self.ratio2)
+                else:
+                    self.height += 3
+                    self.height2 += 3
+                    self.width = int(self.height*self.ratio)
+                    self.width2 = int(self.height2*self.ratio2)
+        self.icon = transform.smoothscale(self.img,(self.width,self.height)) #sets icon to have same size as new image
+    def drawsprite(self,screen):
+        mx,my = mouse.get_pos()
+        screen.blit(self.icon,(mx-self.width//2,my-self.height//2))
+        draw.line(screen,WHITE,(mx,my-10),(mx,my+10),2)
+        draw.line(screen,WHITE,(mx-10,my),(mx+10,my),2) #drawing crosshairs
 #----------------BUTTON CLASS----------------#
 #this class is the class for all buttons in the program
 class Button():
@@ -829,6 +862,12 @@ class Button():
             elif self.arg2 == "rect":
                 tools[8].pic = roundedrect
                 shapetool.icon = roundedrect
+        elif self.func == "shapewidth":
+            #shape width change
+            currtool = shapetool
+            shapetool.width += self.arg2
+            shapetool.width = min(99,shapetool.width) #limits new shapewidth
+            shapetool.width = max(0,shapetool.width)
         elif self.func == "color":
             #color change button
             mb = mouse.get_pressed()
@@ -840,8 +879,19 @@ class Button():
         #displays the toolbit so that user can know what button's tool does
         global comicsans
         mx,my = mouse.get_pos()
-        draw.rect(screen,BLACK,(mx,my-35,comicsans.render(self.toolbit,True,BLOODRED).get_width()+20,35))
-        screen.blit(comicsans.render(self.toolbit,True,BLOODRED),(mx+5,my-30))
+        width = comicsans.render(self.toolbit,True,BLOODRED).get_width()+20
+        if width + mx + 5 > 1200:
+            mx -= width #makes sure toolbit doesn't go off the edge
+        if self.func in [yunostamp,kotonohastamp,lucystamp,inoristamp]:
+            #if the the button changes the tool into a special yandere stamp, in which case we add an extra line of text informing the user of the right-click special
+            draw.rect(screen,BLACK,(mx,my-40,width,40))
+            screen.blit(comicsans.render(self.toolbit,True,BLOODRED),(mx+5,my-35))
+            smallfont = font.SysFont("comicsansms",10) #small font
+            screen.blit(smallfont.render("RIGHT CLICK ON CANVAS FOR YANDERE VERSION",True,BLOODRED),(mx+5,my-17))
+        else:
+            draw.rect(screen,BLACK,(mx,my-35,width,35))
+            screen.blit(comicsans.render(self.toolbit,True,BLOODRED),(mx+5,my-30))
+            
 
 #MOUSE COLOURS
 lcol = BLACK
@@ -857,7 +907,10 @@ shapetool = Shape() #shape tool
 selectool = Select() #select tool
 spraytool = Spray() #spray tool
 filltool = Fill() #fill tool
-yunostamp = Stamp(yunogasai) #yuno gasai stamp
+yunostamp = Stamp(yunogasai) #Yuno Gasai stamp
+kotonohastamp = Stamp(kotonohakatsura) #Kotonoha Katsura stamp
+lucystamp = Stamp(lucy) #Lucy stamp
+inoristamp = Stamp(inoriyuzuriha,yandereinori) #Inori Yuzuriha stamp
 #DROP DOWN BOXES
 fontdropdown = DropDownBox(20,390,[Button("font",comicsans.render("Comic Sans MS",True,BLACK),20,410,"Change Font-Family",200,20,"comicsansms"),
                                    Button("font",arial.render("Arial",True,BLACK),20,430,"Change Font-Family",200,20,"arial"),
@@ -873,6 +926,9 @@ shapedropdown.items[0].selected = True
 #Fontsize buttons
 fontsizebuttons = [Button("fontsize",comicsans.render(" <",True,BLACK),60,370,"Change fontsize",20,20,-1),
                    Button("fontsize",comicsans.render(" >",True,BLACK),100,370,"Change fontsize",20,20,1)]
+#shape width buttons
+shapewidthbuttons = [Button("shapewidth",comicsans.render(" <",True,BLACK),120,220,"Change width",20,20,-1),
+                   Button("shapewidth",comicsans.render(" >",True,BLACK),250,220,"Change width",20,20,1)]
 #----TOOL VARIABLES----#
 currtool = penciltool #current tool
 tools = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follows your mouse"),
@@ -885,7 +941,10 @@ tools = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follow
          Button(linetool,linesprite,80,150,"Line tool: Draw a line"),
          Button(shapetool,roundedrect,80,200,"Shape tool: Draw a shape to give your Deadication some structure"),
          Button(filltool,fillbucket,80,250,"Fill tool: Fill an area up with a colour - Warning: Uses a lot of CPU"),
-         Button(yunostamp,yunoface,550,690,"Paste the cute yet scary Yuno Gasai",60,60)] #buttons of all tools user can press
+         Button(yunostamp,yunoface,550,690,"Paste the cute yet scary Yuno Gasai, of whom violence is no problem",60,60),
+         Button(kotonohastamp,kotonohaface,610,690,"Paste the shy yet violent Kotonoha Katsura, who easily goes insane",60,60),
+         Button(lucystamp,lucyface,670,690,"Paste the pretty yet ruthless Lucy, who has an amnesiac alter-ego known as Nyu",60,60),
+         Button(inoristamp,inoriface,730,690,"Paste the quiet yet deadly Inori Yuzuriha, in whom the crazy Mana Ouma lives",60,60)] #buttons of all tools user can press
 #----CANVAS----#
 canvas = Rect(300,50,800,600) #canvas rect
 draw.rect(screen,BLACK,(299,49,802,602)) #draws canvas border
@@ -905,7 +964,7 @@ screen.blit(subtitle,(610,28))
 comicsans.set_underline(True) #underlines mini-titles
 tooltitle = comicsans.render("TOOLS",True,BLACK) #Title of tools section
 screen.blit(tooltitle,(20,70))
-ystamptitle = comicsans.render("YANDERE CHARACTER STAMPS",True,BLOODRED) #Title of Yandere Character Stamps section
+ystamptitle = comicsans.render("STAMPS OF DEADICATION",True,BLOODRED) #Title of Yandere Character Stamps section
 screen.blit(ystamptitle,(550,660))
 screen.blit(comicsans.render("FONT-SIZE",True,BLACK),(60,350))
 comicsans.set_underline(False)
@@ -948,20 +1007,12 @@ while running:
                     #back scroll
                     currtool.scroll(screen,False)
                 else:
-                    if len(mem) < 256:
-                        if type(currtool) == Text:
-                            if not currtool.hastextbox:
-                                #makes sure the turning off of a textbox doesn't proc a memory addition
-                                mem2 = [] #makes the redo option empty as it shouldn't do anything once new data is added to the screen
-                                mem.append(screen.copy()) #adds a screenshot to the undo list memory before the user's change to the canvas                            
-                        elif type(currtool) == Select:
-                            if not currtool.hasbox:
-                                #makes sure moving a selected box doesn't proc memory addition
-                                mem2 = [] #makes the redo option empty as it shouldn't do anything once new data is added to the screen
-                                mem.append(screen.copy()) #adds a screenshot to the undo list memory before the user's change to the canvas  
-                        else:
-                            mem2 = [] #makes the redo option empty as it shouldn't do anything once new data is added to the screen
-                            mem.append(screen.copy()) #adds a screenshot to the undo list memory before the user's change to the canvas
+                    if len(mem) >= 256:
+                        del mem[0]
+                    if not textool.hastextbox and not selectool.hasbox:
+                        #makes sure we don't have an open text box or an open select box when we click, as that will just close the editing interface and shouldn't be saved into memory
+                        mem2 = [] #makes the redo option empty as it shouldn't do anything once new data is added to the screen
+                        mem.append(screen.copy()) #adds a screenshot to the undo list memory before the user's change to the canvas
                     if mb[0]:
                         currtool.lclick(screen) #calls tool's left click method
                     elif mb[2]:
@@ -980,17 +1031,23 @@ while running:
                 lastclick = "palette"
             else:
                 #if user doesn't click palette or canvas
-                lastclick = "" #set last click to "" (which means everything except canvas and palette)
+                lastclick = "" #set last click to "" (which means everything except canvas, drop down boxes and palette)
                 screen.set_clip(canvas)
                 currtool.outside() #runs current tool's outside function, as user clicked outside of canvas
                 screen.set_clip(None)
-                #following loop checks for tools and if we clicked them or not
+                #following loop checks for tools/buttons and if we clicked them or not
                 for b in palbuttons:
                     if b.istouch():
                         b.clickon(screen)
+                        break
                 for b in fontsizebuttons:
                     if b.istouch():
                         b.clickon(screen)
+                        break
+                for b in shapewidthbuttons:
+                    if b.istouch():
+                        b.clickon(screen)
+                        break
                 for t in tools:
                     if t.istouch():
                         if t.func != currtool:
@@ -1019,6 +1076,8 @@ while running:
             if kp[K_z] and (kp[K_LCTRL] or kp[K_RCTRL]) and (kp[K_LSHIFT] or kp[K_RSHIFT]) and canundo:
                 #if the user pressed Ctrl-Shift-Z will redo
                 if len(mem2) > 0:
+                    if len(mem) >= 256:
+                        del mem[0] #removes the last thing memorized if we're over the limit
                     mem.append(screen.copy()) #appends current screen to undo list
                     prevsave = mem2.pop(-1) #gets new screen from redo list
                     screen.blit(prevsave,(0,0))
@@ -1030,6 +1089,8 @@ while running:
                     screen.blit(prevsave,(0,0)) #fills the screen with new save
             elif kp[K_SPACE] and (kp[K_LCTRL] or kp[K_RCTRL]):
                 #clears the canvas if user presses CTRL and space
+                if len(mem) >= 256:
+                    del mem[0] #removes the last thing memorized if we're over the limit
                 mem2 = [] #makes the redo option empty as it shouldn't do anything once new data is added to the screen
                 mem.append(screen.copy()) #adds a screenshot to the undo list memory before the user's change to the canvas
                 draw.rect(screen,WHITE,canvas)
@@ -1061,11 +1122,13 @@ while running:
                 mouse.set_visible(True)
                 if loadname:
                     if loadname[-4:] in [".jpg",".png",".gif",".bmp"]:
-                        if len(mem) < 256:
-                            mem2 = []
-                            mem.append(screen.copy())
+                        if len(mem) >= 256:
+                            del mem[0] #removes the last thing memorized if we're over the limit
+                        mem2 = []
+                        mem.append(screen.copy())
                         if not kp[K_LSHIFT] and not kp[K_RSHIFT]:
                             draw.rect(screen,WHITE,canvas) #clears everything previously on the canvas if user does not hold shift
+                        cfiller = screen.copy().subsurface(canvas)
                         opened_image = image.load(loadname)
                         img_ratio = opened_image.get_width()/opened_image.get_height()
                         if opened_image.get_width() >= opened_image.get_height():
@@ -1092,9 +1155,9 @@ while running:
                             #if the current selection is not the clipboard, we paste it to ensure it isn't lost
                             screen.blit(selectool.selectedbox,(selectool.x,selectool.y))
                             cfiller = screen.copy().subsurface(canvas)
-                        selectool.selectedbox = boxcp[0]
-                        selectool.width = boxcp[0].get_width()
-                        selectool.height = boxcp[0].get_height()
+                            selectool.selectedbox = boxcp[0]
+                            selectool.width = boxcp[0].get_width()
+                            selectool.height = boxcp[0].get_height()
                     else:
                         #we blit the image to where we copied it from in a select box
                         selectool.selectedbox = boxcp[0]
@@ -1125,8 +1188,13 @@ while running:
         b.display(screen)
     for b in fontsizebuttons:
         b.display(screen)
+    for b in shapewidthbuttons:
+        b.display(screen)
     draw.rect(screen,PINK,(80,370,20,20))
-    screen.blit(comicsans.render(str(textool.textbox.fontsize),True,BLACK),(80,370)) #draws fontsize for textbox
+    screen.blit(comicsans.render(str(textool.textbox.fontsize),True,BLACK),(80,370)) #displays fontsize for textbox
+    draw.rect(screen,PINK,(140,220,110,20))
+    dispwidth = "Border size: "+str(shapetool.width) if shapetool.width > 0 else "No border (fill)"
+    screen.blit(comicsans.render(dispwidth,True,BLACK),(140,220)) #displays width of shapetool for shape tool
     #----MOUSE HOLD FUNCTIONS----#
     mb = mouse.get_pressed()
     mx,my = mouse.get_pos()
@@ -1157,6 +1225,11 @@ while running:
             else:
                 t.highlighted = False
         for b in fontsizebuttons:
+            if b.istouch():
+                b.highlighted = True
+            else:
+                b.highlighted = False
+        for b in shapewidthbuttons:
             if b.istouch():
                 b.highlighted = True
             else:
