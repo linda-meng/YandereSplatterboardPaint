@@ -14,6 +14,8 @@ __copyright__ = "Yttrium Z 2015-2016"
 #MUSIC
 #mixer.init()
 #mixer.Sound("music/MiraiNikkiOP.ogg").play(-1)
+#music = [mixer.Sound("music/MiraiNikkiOP.ogg")]
+#song = 0
 #COLOR
 WHITE = (255,255,255)
 BLACK = (0,0,0)
@@ -65,8 +67,9 @@ root.withdraw() #makes sure file dialog box disappears after it closes
 screen = display.set_mode((1200,750))
 screen.fill(PINK)
 display.set_caption("YANDERE SPLATTERBOARD - PAINT PROGRAM BY YOU ZHOU ~~~~~~GREAT ART TAKES DEADICATION~~~~~~")
+display.set_icon(transform.scale(image.load("images/icon.jpg"),(32,32)))
 running = True
-#--------------------UI CLASSES (like textboxes, scroll boxes)--------------------#
+#--------------------UI CLASSES (like textboxes, drop down boxes)--------------------#
 #-----------------------------TEXTBOX
 class Textbox():
     #textbox
@@ -692,6 +695,7 @@ class Fill(Tool):
         self.ccol = WHITE #change colour - what colours to change
     def lclick(self,screen):
         global lcol
+        global canvas
         mx,my = mouse.get_pos()
         self.fcol = lcol #sets fill colour to left mouse colour
         self.ccol = screen.get_at((mx,my)) #sets change colour to where user clicked
@@ -701,7 +705,7 @@ class Fill(Tool):
         tochange.add((mx,my))
         while len(tochange) > 0:
             x,y = tochange.pop()
-            if 300 <= x <= 1100 and 50 <= y <= 650 and screen.get_at((x,y)) == self.ccol:
+            if canvas.collidepoint(x,y) and screen.get_at((x,y)) == self.ccol:
                 #changes the colour of all four directions
                 screen.set_at((x,y),self.fcol)
                 tochange.add((x+1,y))
@@ -720,14 +724,13 @@ class Fill(Tool):
         tochange.add((mx,my))
         while len(tochange) > 0:
             x,y = tochange.pop()
-            if 300 < x < 1100 and 50 < y < 650:
+            if canvas.collidepoint(x,y) and screen.get_at((x,y)) == self.ccol:
                 #changes the colour of all four directions
-                if screen.get_at((x,y)) == self.ccol:
-                    screen.set_at((x,y),self.fcol)
-                    tochange.add((x+1,y))
-                    tochange.add((x-1,y))
-                    tochange.add((x,y+1))
-                    tochange.add((x,y-1))
+                screen.set_at((x,y),self.fcol)
+                tochange.add((x+1,y))
+                tochange.add((x-1,y))
+                tochange.add((x,y+1))
+                tochange.add((x,y-1))
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
         screen.blit(self.icon,(mx-40,my-40))
@@ -996,6 +999,7 @@ while running:
             running = False
         if e.type == MOUSEBUTTONDOWN:
             mb = mouse.get_pressed()
+            mx,my = mouse.get_pos()
             if canvas.collidepoint(mx,my):
                 screen.set_clip(canvas)
                 #if user clicks canvas
@@ -1110,6 +1114,9 @@ while running:
                         ext = ".jpg"
                     image.save(screen.copy().subsurface(canvas), loadname + ext)
                 mouse.set_visible(False)
+                root.destroy()
+                root = Tk() #allows user to use window again by resetting the window
+                root.withdraw()
             elif kp[K_o] and (kp[K_LCTRL] or kp[K_RCTRL]):
                 #if user presses CTRL-O will open a file and paste it onto canvas
                 if not canundo:
@@ -1143,6 +1150,9 @@ while running:
                         currtool.x,currtool.y,currtool.width,currtool.height = 300,50,width,height #creating a select box around uploaded image
                     else:
                         print("Invalid image")
+                root.destroy()
+                root = Tk() #allows user to use window again by resetting the window
+                root.withdraw()
                 mouse.set_visible(False)
             elif kp[K_v] and (kp[K_LCTRL] or kp[K_RCTRL]):
                 #CTRL-V
@@ -1293,4 +1303,5 @@ while running:
     else:
         mouse.set_visible(True)
     display.flip()
+root.destroy()
 quit()
