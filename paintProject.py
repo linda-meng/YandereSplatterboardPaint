@@ -20,9 +20,6 @@ try:
 except:
     pass
 #----LOADING SCREEN----#
-screen.blit(image.load("images/LoadScreen2.png"),(0,0))
-display.flip()
-sleep(1)
 screen.blit(image.load("images/LoadScreen.png"),(0,0))
 display.flip()
 #----PERMANENT CONSTANT DATA----#
@@ -38,6 +35,9 @@ mixer.init()
 #shuffle(music) #shuffles the music
 #music[0].play()'''
 song = 0 #which song are we playing
+screen.blit(image.load("images/LoadScreen2.png"),(0,0)) #second loading screen - means music is loaded and loading is almost done
+display.flip()
+sleep(1)
 #COLOR
 WHITE = (255,255,255)
 BLACK = (0,0,0)
@@ -78,6 +78,7 @@ saveicon = transform.scale(image.load("images/saveicon.png"),(60,60))
 openicon = transform.scale(image.load("images/openicon.png"),(60,60))
 yunoface = transform.smoothscale(image.load("images/yunoface.png"),(60,60))
 yunogasai = image.load("images/yunogasai.png")
+yandereyuno = transform.smoothscale(image.load("images/yandereyuno.png"),(220,300))
 kotonohaface = transform.smoothscale(image.load("images/kotonoha.png"),(60,60))
 kotonohakatsura = transform.smoothscale(image.load("images/kotonohakatsura.png"),(360,400))
 lucyface = transform.smoothscale(image.load("images/lucyface.png"),(60,60))
@@ -254,11 +255,10 @@ class Pencil(Tool):
         self.sx = mx
         self.sy = my #changes the sx and sy to mx and my to keep make it follow the mouse
     def outside(self):
-        #changes starting to point to still follow the mouse
-        #this is for more fluid painting
-        mx,my = mouse.get_pos()
-        self.sx = mx
-        self.sy = my
+        #continues drawing if the last click was canvas - it won't draw outside of canvas because of clipping before calling this method
+        global lastclick
+        if lastclick == "canvas":
+            self.cont(screen)
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
         screen.blit(self.icon,(mx,my-40))
@@ -304,10 +304,10 @@ class Eraser(Tool):
         self.sx = mx
         self.sy = my
     def outside(self):
-        #changes starting point to still follow the mouse - more fluidity
-        mx,my = mouse.get_pos()
-        self.sx = mx
-        self.sy = my
+        #continues drawing if the last click was canvas - it won't draw outside of canvas because of clipping before calling this method
+        global lastclick
+        if lastclick == "canvas":
+            self.cont(screen)
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
         draw.circle(screen,WHITE,(mx,my),self.size) #draws circle to show user how big eraser is
@@ -368,10 +368,10 @@ class Brush(Tool):
         self.sx = mx
         self.sy = my
     def outside(self):
-        #changes starting point to still follow the mouse - fluidity
-        mx,my = mouse.get_pos()
-        self.sx = mx
-        self.sy = my
+        #continues drawing if the last click was canvas - it won't draw outside of canvas because of clipping before calling this method
+        global lastclick
+        if lastclick == "canvas":
+            self.cont(screen)
     def drawsprite(self,screen):
         global lcol
         global rcol
@@ -496,6 +496,15 @@ class Text(Tool):
             #draws a text box if we don't have one
             self.textbox = Textbox(mx,my,20,20,self.fontfamily,self.fontsize,rcol)
             self.hastextbox = True
+    def scroll(self,screen,forward=True):
+        if forward:
+            #makes text smaller
+            self.fontsize -= 1
+            self.fontsize = max(self.fontsize,5) #makes sure fontsize isn't less than 5
+        else:
+            #makes text bigger
+            self.fontsize += 1
+            self.fontsize = min(self.fontsize,99) #makes sure fontsize isn't greater than 99
     def keypress(self,screen,keypressed):
         #the only tool who uses this method
         #it allows the tool to interact with the user's keyboard
@@ -690,8 +699,10 @@ class Spray(Tool):
                 screen.set_at((int(self.sx+lx*i+cos(randang)*randhy),int(self.sy+ly*i+sin(randang)*randhy)),self.col) #random spray
         self.sx,self.sy = mx,my
     def outside(self):
-        mx,my = mouse.get_pos()
-        self.sx,self.sy = mx,my
+        #continues drawing if the last click was canvas - it won't draw outside of canvas because of clipping before calling this method
+        global lastclick
+        if lastclick == "canvas":
+            self.cont(screen)
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
         screen.blit(self.icon,(mx-10,my))
@@ -716,6 +727,15 @@ class Shape(Tool):
     def rclick(self,screen):
         self.lclick(screen) #identical to lclick
         self.col = rcol #sets color to rclick color
+    def scroll(self,screen,forward=True):
+        if forward:
+            #makes shape border smaller
+            self.width -= 1
+            self.width = max(0,self.width) #makes sure width is at least 0
+        else:
+            #makes shape border bigger
+            self.width += 1
+            self.width = min(99,self.width) #makes sure width does not exceed 99
     def cont(self,screen):
         global cfiller
         mx,my = mouse.get_pos()
@@ -791,14 +811,42 @@ class Stamp(Tool):
         self.owidth2 = self.width2 = self.img2.get_width()
         self.oheight2 = self.height2 = self.img2.get_height()
         self.icon = self.img
+        self.currimg = "" #which image is the stamp drawing
     def lclick(self,screen):
-        #pastes image 1 at the middle on the mouse
-        mx,my = mouse.get_pos()
-        screen.blit(transform.smoothscale(self.img,(self.width,self.height)),(mx-self.width/2,my-self.height/2))
+        global cfiller
+        global canvas
+        #sets the img to image 1 and sets cfiller to canvas upon click
+        cfiller = screen.copy().subsurface(canvas) #sets cfillers
+        self.currimg = ""
+        try:
+            self.icon = transform.smoothscale(self.img,(self.width,self.height)) #changes icon to image 1
+        except:
+            self.icon = transform.scale(self.img,(self.width,self.height))
     def rclick(self,screen):
-        #pastes image 2 at the middle on the mouse
+        #sets the img to image 2 and sets cfiller upon click
+        self.lclick(screen)
+        try:
+            self.icon = transform.smoothscale(self.img2,(self.width2,self.height2)) #changes icon to image 2
+        except:
+            self.icon = transform.scale(self.img2,(self.width2,self.height2))
+        self.currimg = "2"
+    def cont(self,screen):
+        screen.blit(cfiller,(canvas[0],canvas[1]))
         mx,my = mouse.get_pos()
-        screen.blit(transform.smoothscale(self.img2,(self.width2,self.height2)),(mx-self.width2//2,my-self.height2//2))
+        currwidth = eval("self.width"+self.currimg)
+        currheight = eval("self.height"+self.currimg)
+        currimg = eval("self.img"+self.currimg) #currimg dimensions and currimg
+        try:
+            screen.blit(transform.smoothscale(currimg,(currwidth,currheight)),(int(mx-currwidth/2),int(my-currheight/2))) #tries to blit a smoothscaled stamp
+        except:
+            screen.blit(transform.scale(currimg,(currwidth,currheight)),(int(mx-currwidth/2),int(my-currheight/2))) #blits a scaled stamp
+    def mouseup(self,screen):
+        #resets icon = image 1
+        self.currimg = ""
+        try:
+            self.icon = transform.smoothscale(self.img,(self.width,self.height)) #changes icon to image 1
+        except:
+            self.icon = transform.scale(self.img,(self.width,self.height))
     def scroll(self,screen,forward=True):
         if forward:
             #makes image smaller
@@ -814,21 +862,35 @@ class Stamp(Tool):
         self.height = int(self.oheight*self.percentage/100)
         self.width2 = int(self.owidth2*self.percentage/100)
         self.height2 = int(self.oheight2*self.percentage/100)
-        self.icon = transform.smoothscale(self.img,(self.width,self.height)) #sets icon to have same size as new image
+        currwidth = eval("self.width"+self.currimg)
+        currheight = eval("self.height"+self.currimg)
+        currimg = eval("self.img"+self.currimg) #currimg dimensions and currimg
+        try:
+            self.icon = transform.smoothscale(currimg,(currwidth,currheight)) #changes icon size
+        except:
+            self.icon = transform.scale(currimg,(currwidth,currheight))
     def keypress(self,screen,keypressed=""):
         if keypressed == " ":
             #if the user hit space, we return the image to it's original state
             self.percentage = 100
-            self.width = int(self.owidth*self.percentage/100)
-            self.height = int(self.oheight*self.percentage/100)
-            self.width2 = int(self.owidth2*self.percentage/100)
-            self.height2 = int(self.oheight2*self.percentage/100)
-            self.icon = transform.smoothscale(self.img,(self.width,self.height)) #sets icon to have same size as new image
+            self.width = self.owidth
+            self.height = self.oheight
+            self.width2 = self.owidth2
+            self.height2 = self.oheight2
+            currwidth = eval("self.width"+self.currimg)
+            currheight = eval("self.height"+self.currimg)
+            currimg = eval("self.img"+self.currimg) #currimg dimensions and currimg
+            try:
+                self.icon = transform.smoothscale(currimg,(currwidth,currheight)) #sets icon to have same size as new image
+            except:
+                self.icon = transform.scale(currimg,(currwidth,currheight)) #sets icon to have same size as new image
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
-        screen.blit(self.icon,(mx-self.width//2,my-self.height//2))
-        draw.line(screen,WHITE,(mx,my-10),(mx,my+10),2)
-        draw.line(screen,WHITE,(mx-10,my),(mx+10,my),2) #drawing crosshairs
+        mb = mouse.get_pressed()
+        screen.blit(self.icon,(mx-self.icon.get_width()//2,my-self.icon.get_height()//2))
+        if mb == (0,0,0):
+            draw.line(screen,WHITE,(mx,my-10),(mx,my+10),2)
+            draw.line(screen,WHITE,(mx-10,my),(mx+10,my),2) #drawing crosshairs if the mouse is not being pressed
 #----------------BUTTON CLASS----------------#
 #this class is the class for all buttons in the program
 class Button():
@@ -855,7 +917,7 @@ class Button():
         if type(self.pic) == Surface:
             screen.blit(self.pic,[self.x,self.y])
         elif type(self.pic) == Rect:
-            draw.rect(screen,self.arg2,self.pic)
+                draw.rect(screen,self.arg2,self.pic)
         if self.func == currtool or self.selected:
             #If it's the selected tool, the border of the button is red, otherwise it's black
             draw.rect(screen,RED,(self.x,self.y,self.width,self.height),1)
@@ -1004,7 +1066,7 @@ shapetool = Shape() #shape tool
 selectool = Select() #select tool
 spraytool = Spray() #spray tool
 filltool = Fill() #fill tool
-yunostamp = Stamp(yunogasai) #Yuno Gasai stamp
+yunostamp = Stamp(yunogasai,yandereyuno) #Yuno Gasai stamp
 kotonohastamp = Stamp(kotonohakatsura) #Kotonoha Katsura stamp
 lucystamp = Stamp(lucy) #Lucy stamp
 inoristamp = Stamp(inoriyuzuriha,yandereinori) #Inori Yuzuriha stamp
@@ -1039,6 +1101,7 @@ tools = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follow
          Button(selectool,dottedbox,80,100,"Select tool: Select an area and manipulate with Deadication"),
          Button(linetool,linesprite,80,150,"Line tool: Draw a line"),
          Button(shapetool,roundedrect,80,200,"Shape tool: Draw a shape to give your Deadication some structure"),
+         Button(filltool,fillbucket,80,250,"Fill tool: Fill an area with a colour (Warning: uses a lot of CPU)"),
          Button("save",saveicon,1120,100,"Save your work of Deadication",60,60),
          Button("open",openicon,1120,170,"Open a previously saved image - right click to open without deleting current work",60,60)]#buttons of all tools user can press
 stamps = [[Button(yunostamp,yunoface,550,690,"Paste the cute yet scary Yuno Gasai, of whom violence is no problem",60,60),
@@ -1122,10 +1185,10 @@ while running:
                     #back scroll
                     currtool.scroll(screen,False)
                 else:
-                    if len(mem) >= 256:
-                        del mem[0]
                     if not textool.hastextbox and not selectool.hasbox:
-                        #makes sure we don't have an open text box or an open select box when we click, as that will just close the editing interface and shouldn't be saved into memory
+                        if len(mem) >= 256:
+                            del mem[0] #limits memory at 256
+                        #makes sure we don't have an open text box or an open select box when we click, as that will just close the selected box and shouldn't be saved into memory
                         mem2 = [] #makes the redo option empty as it shouldn't do anything once new data is added to the screen
                         mem.append(screen.copy()) #adds a screenshot to the undo list memory before the user's change to the canvas
                     if e.button == 1:
@@ -1180,7 +1243,8 @@ while running:
                 shapedropdown.menudown = False #turns off menu in shapedropdown if it was not clicked
         if e.type == MOUSEBUTTONUP:
             if lastclick == "canvas":
-                currtool.mouseup(screen) #tool's mouseup method
+                if e.button not in [4,5]:
+                    currtool.mouseup(screen) #tool's mouseup method
         if e.type == KEYDOWN:
             #----KEY PRESS FUNCTIONS----#
             kp = key.get_pressed()
@@ -1316,7 +1380,7 @@ while running:
     for b in shapewidthbuttons:
         b.display(screen)
     draw.rect(screen,PINK,(80,370,20,20))
-    screen.blit(comicsans.render(str(textool.textbox.fontsize),True,BLACK),(80,370)) #displays fontsize for textbox
+    screen.blit(comicsans.render(str(textool.fontsize),True,BLACK),(80,370)) #displays fontsize for textbox
     draw.rect(screen,PINK,(140,220,110,20))
     dispwidth = "Border size: "+str(shapetool.width) if shapetool.width > 0 else "No border (fill)"
     screen.blit(comicsans.render(dispwidth,True,BLACK),(140,220)) #displays width of shapetool for shape tool
