@@ -81,13 +81,16 @@ yunogasai = image.load("images/yunogasai.png")
 yandereyuno = transform.smoothscale(image.load("images/yandereyuno.png"),(220,300))
 kotonohaface = transform.smoothscale(image.load("images/kotonoha.png"),(60,60))
 kotonohakatsura = transform.smoothscale(image.load("images/kotonohakatsura.png"),(360,400))
+yanderekotonoha = transform.smoothscale(image.load("images/yanderekotonoha.png"),(310,400))
 lucyface = transform.smoothscale(image.load("images/lucyface.png"),(60,60))
 lucy = transform.smoothscale(image.load("images/lucy.png"),(280,400))
+yanderelucy = transform.smoothscale(image.load("images/yanderelucy.png"),(525,600))
 inoriface = transform.smoothscale(image.load("images/inoriface.png"),(60,60))
 inoriyuzuriha = transform.smoothscale(image.load("images/inoriyuzuriha.png"),(280,400))
 yandereinori = transform.scale(image.load("images/yandereinori.png"),(280,400))
 tokoface = transform.smoothscale(image.load("images/tokoface.png"),(60,60))
-tokofukawa = image.load("images/tokofukawa.png")
+tokofukawa = transform.smoothscale(image.load("images/tokofukawa.png"),(400,400))
+genocidersyo = image.load("images/genocidersyo.png")
 ryokoface = transform.smoothscale(image.load("images/ryokoface.png"),(60,60))
 ryokoasakura = image.load("images/ryokoasakura.png")
 #Finalizes Screen
@@ -1066,11 +1069,12 @@ shapetool = Shape() #shape tool
 selectool = Select() #select tool
 spraytool = Spray() #spray tool
 filltool = Fill() #fill tool
+#stamps
 yunostamp = Stamp(yunogasai,yandereyuno) #Yuno Gasai stamp
-kotonohastamp = Stamp(kotonohakatsura) #Kotonoha Katsura stamp
-lucystamp = Stamp(lucy) #Lucy stamp
+kotonohastamp = Stamp(kotonohakatsura,yanderekotonoha) #Kotonoha Katsura stamp
+lucystamp = Stamp(lucy,yanderelucy) #Lucy stamp
 inoristamp = Stamp(inoriyuzuriha,yandereinori) #Inori Yuzuriha stamp
-tokostamp = Stamp(tokofukawa) #Toko Fukawa stamp
+tokostamp = Stamp(tokofukawa,genocidersyo) #Toko Fukawa stamp
 ryokostamp = Stamp(ryokoasakura) #Ryoko Asakura stamp
 #DROP DOWN BOXES
 fontdropdown = DropDownBox(20,390,[Button("font",comicsans.render("Comic Sans MS",True,BLACK),20,410,"Change Font-Family",200,20,"comicsansms"),
