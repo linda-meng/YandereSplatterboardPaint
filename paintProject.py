@@ -131,11 +131,20 @@ class Textbox():
         self.width = max([self.tbfont.render(self.text[i],True,BLACK).get_width() for i in range(self.lines)])
         self.height = self.tbfont.render(self.text[irow],True,BLACK).get_height()*self.lines
     def delete(self):
-        pass
-    def backspace(self):
-        #deletes last character in textbox
-        if self.icol == 0 and self.lines > 1 and self.irow > 0:
+        #deletes character in front of insertion point
+        if self.icol == len(self.text[self.irow]) and self.lines - self.irow > 1:
             #if there's nothing in the current line, removes line altogether
+            self.text[self.irow] += self.text[self.irow+1] #adds the text of current line to previous line
+            del self.text[self.irow+1]
+            self.lines -= 1
+        else:
+            self.text[self.irow] = self.text[self.irow][:self.icol] + self.text[self.irow][self.icol+1:]
+        self.width = max([self.tbfont.render(self.text[i],True,BLACK).get_width() for i in range(self.lines)]) #sets width to be maximum of the lines
+        self.height = self.tbfont.render(self.text[-1],True,BLACK).get_height()*self.lines #sets height
+    def backspace(self):
+        #deletes character behind insertion point
+        if self.icol == 0 and self.lines > 1 and self.irow > 0:
+            #if the insertion point is at the beginning of line we move it back
             self.icol = len(self.text[self.irow-1]) #sets insertion point column at the end of the line moved to
             self.text[self.irow-1] += self.text[self.irow] #adds the text of current line to previous line
             del self.text[self.irow]
@@ -642,9 +651,17 @@ class Text(Tool):
                 elif self.textbox.irow < self.textbox.lines-1:
                     self.textbox.irow += 1 #moves the insertion point to the beginning of the below line if they move right of current line
                     self.textbox.icol = 0
+            elif kp[K_HOME]:
+                #moves insertion point to beginning of row
+                self.textbox.icol = 0
+            elif kp[K_END]:
+                #moves insertion point to end of row
+                self.textbox.icol = len(self.textbox.text[self.textbox.irow])
             else:
                 if kp[K_BACKSPACE]:
                     self.textbox.backspace()
+                elif kp[K_DELETE]:
+                    self.textbox.delete()
                 elif 1 in kp:
                     self.textbox.writeto(keypressed) #writes keypressed to texbox
     def outside(self):
