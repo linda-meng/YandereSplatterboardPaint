@@ -93,6 +93,8 @@ tokofukawa = transform.smoothscale(image.load("images/tokofukawa.png"),(400,400)
 genocidersyo = image.load("images/genocidersyo.png")
 ryokoface = transform.smoothscale(image.load("images/ryokoface.png"),(60,60))
 ryokoasakura = image.load("images/ryokoasakura.png")
+yandereryoko = image.load("images/yandereryoko.png")
+redarrow = transform.scale(image.load("images/RedArrowDown.png"),(30,30))
 #Finalizes Screen
 screen.fill((255,150,150))
 running = True
@@ -113,36 +115,58 @@ class Textbox():
         self.width = self.tbfont.render(self.text[-1],True,BLACK).get_width()
         self.height = self.tbfont.render(self.text[-1],True,BLACK).get_height()
         self.lines = 1 #number of lines textbox has
+        self.irow = 0 #position of insertion point row and column
+        self.icol = 0
     def changefont(self,fontfamily,fontsize):
         self.fontfamily = fontfamily
         self.fontsize = fontsize
         self.tbfont = font.SysFont(fontfamily,self.fontsize)
     def writeto(self,char):
         #writes a character in the box
-        self.text[-1] += char
+        if char == "":
+            return 0 #makes sure we actually have a character to input (random keys like shift will move the cursor and that's not good)
+        irow,icol = self.irow,self.icol
+        self.text[irow] = self.text[irow][:icol] + char + self.text[irow][icol:] #inserts character right before insertion point
+        self.icol += 1
         self.width = max([self.tbfont.render(self.text[i],True,BLACK).get_width() for i in range(self.lines)])
-        self.height = self.tbfont.render(self.text[-1],True,BLACK).get_height()*self.lines
+        self.height = self.tbfont.render(self.text[irow],True,BLACK).get_height()*self.lines
     def delete(self):
+        pass
+    def backspace(self):
         #deletes last character in textbox
-        if self.text[-1] == "" and self.lines > 1:
+        if self.icol == 0 and self.lines > 1 and self.irow > 0:
             #if there's nothing in the current line, removes line altogether
-            del self.text[-1]
+            self.icol = len(self.text[self.irow-1]) #sets insertion point column at the end of the line moved to
+            self.text[self.irow-1] += self.text[self.irow] #adds the text of current line to previous line
+            del self.text[self.irow]
             self.lines -= 1
+            self.irow -= 1 #moves the row one up
         else:
-            self.text[-1] = self.text[-1][:-1]
+            self.text[self.irow] = self.text[self.irow][:self.icol-1] + self.text[self.irow][self.icol:]
+            self.icol -= 1
         self.width = max([self.tbfont.render(self.text[i],True,BLACK).get_width() for i in range(self.lines)]) #sets width to be maximum of the lines
         self.height = self.tbfont.render(self.text[-1],True,BLACK).get_height()*self.lines #sets height
     def newline(self):
         self.lines += 1
-        self.text.append("")
+        #inserts new line after insertion point
+        self.irow += 1
+        self.text = self.text[:self.irow] + [self.text[self.irow-1][self.icol:]] + self.text[self.irow:]
+        self.text[self.irow-1] = self.text[self.irow-1][:self.icol] #trims the part of the line moved to the new line
+        self.icol = 0
         self.height = self.tbfont.render(self.text[-1],True,BLACK).get_height()*self.lines
+        self.width = max([self.tbfont.render(self.text[i],True,BLACK).get_width() for i in range(self.lines)]) #sets width to be maximum of the lines
     def drawtext(self,screen,perm=True):
         #draws text to screen
         if not perm:
+            #if it isn't permanent drawing
             draw.rect(screen,self.col,(self.x-2,self.y-2,self.width+4,self.height+4),2)
+            #^draws a box to fit the text of the text box drawn by the text tool
+            draw.line(screen,self.col,
+                      (self.x+self.tbfont.render(self.text[self.irow][:self.icol],True,BLACK).get_width(),self.y+self.tbfont.render(self.text[-1],True,BLACK).get_height()*self.irow),
+                      (self.x+self.tbfont.render(self.text[self.irow][:self.icol],True,BLACK).get_width(),self.y+self.tbfont.render(self.text[-1],True,BLACK).get_height()*self.irow+self.tbfont.render(self.text[self.irow][:self.icol],True,BLACK).get_height()))
+            #^draws insertion point
         else:
             screen.set_clip(canvas)
-        #^draws a box to fit the text of the text box drawn by the text tool
         for i in range(self.lines):
             screen.blit(self.tbfont.render(self.text[i],True,self.col),(self.x,self.y+(self.height//self.lines)*i))#blits font to screen
         screen.set_clip(None)
@@ -194,6 +218,80 @@ class DropDownBox():
                     i.selected = False
         else:
             self.menudown = False
+#-----------------------------GRADIENTSELECTOR
+class GradSel():
+    #Gradient selector, let's user choose whiteness and blackness of color
+    #it is a rectangle gradient whose base color changes based on user's mouse color(s)
+    def __init__(self,x,y,width=300,height=60):
+        global lcol
+        self.color = lcol
+        self.clicked = 0 #left mouse button or right mouse button? (0 = left mouse, 1 = right mouse,-1 means not clicking)
+        self.x,self.y = x,y #sets co-ords and dimensions
+        self.width = width
+        self.height = height
+        self.selected = self.width//2 #selected color (0 means black; width means white; half of width means the color)
+    def lclick(self,screen):
+        #left click function
+        #changes gradient to lcol
+        global lcol
+        self.clicked = 0
+        self.color = lcol #sets its own color to lcol
+    def rclick(self,screen):
+        #right click function
+        #sets mouse color to 
+        global rcol
+        self.clicked = 1
+        self.color = rcol #sets its own color to rcol
+    def cont(self,screen):
+        #sets mouse color to where mouse is
+        global lcol,rcol
+        mx,my = mouse.get_pos()
+        self.selected = mx-self.x #sets selected to mousex - self.x as that would be the location of color relative to box
+        if self.clicked:
+            rcol = screen.get_at((self.x+self.selected,self.y)) #right click sets right mouse button
+        else:
+            lcol = screen.get_at((self.x+self.selected,self.y)) #left click sets left mouse button
+
+    def mouseup(self,screen):
+        self.clicked = -1
+        self.selected = self.width//2
+    def draw(self,screen):
+        #draws itself
+        if self.clicked == -1:
+            col = lcol #if the user isn't clicking we display the left color
+        else:
+            col = self.color #its own color
+        #the following variables are increment variables
+        #they show how much we must increment each color by every loop to go from black to the color
+        ri = col[0]/(self.width//2) #increment for red 
+        gi = col[1]/(self.width//2) #increment for green
+        bi = col[2]/(self.width//2) #increment for blue
+        #we draw lines to make a gradient rectangle
+        for i in range(self.width//2+1):
+            #the color is the increment multiplied by the the loop
+            #this is so the color goes from black slowly to the color
+            draw.line(screen,(int(ri*i),int(gi*i),int(bi*i)),(i+self.x,self.y),(i+self.x,self.y+self.height))
+        #the following variables are the same as ri,gi and bi, but they increase into white instead of black
+        ri2 = (255-col[0])/(self.width//2) #increment for red
+        gi2 = (255-col[1])/(self.width//2) #increment for green
+        bi2 = (255-col[2])/(self.width//2) #increment for blue
+        for i in range(self.width-self.width//2):
+            #same as the previous loop, except it goes from color to white
+            draw.line(screen,(int(ri2*i+col[0]),int(gi2*i+col[1]),int(bi2*i+col[2])),(i+self.x+self.width//2,self.y),(i+self.x+self.width//2,self.y+self.height))
+    def drawSel(self,screen):
+        #DRAWS SELECTED POINT
+        draw.line(screen,PINK,(self.x+self.selected,self.y),(self.x+self.selected,self.y+self.height)) #draws a pink line
+        screen.blit(redarrow,(self.x+self.selected-15,self.y-10)) #draws a red arrow
+    def istouch(self):
+        #is the mouse touching the gradient selector? Well this method says!
+        mx,my = mouse.get_pos()
+        #we check if it touches the arrow and if the x co-ord is still within the gradient
+        #this is to make sure the mouse does not go off the gradient via arrow
+        if Rect(self.x+self.selected-15,self.y-10,30,30).collidepoint((mx,my)) and self.x <= mx < self.x+self.width:
+            #if the user is clicking the red arrow we also allow touch
+            return True
+        return Rect(self.x,self.y,self.width,self.height).collidepoint((mx,my)) #otherwise we return true if the user pressed the gradient box
+        
 #--------------------TOOL CLASSES--------------------#
 #--basis for tools
 class Tool():
@@ -520,9 +618,33 @@ class Text(Tool):
             elif kp[K_RETURN]:
                 #adds a new line if the RETURN button is pressed
                 self.textbox.newline()
+            elif kp[K_UP]:
+                #moves insertion point up
+                if self.textbox.irow > 0:
+                    self.textbox.irow -= 1
+                    self.textbox.icol = min(self.textbox.icol,len(self.textbox.text[self.textbox.irow])) #makes sure column is not greater than number in the row
+            elif kp[K_DOWN]:
+                #moves insertion point down
+                if self.textbox.irow < self.textbox.lines-1:
+                    self.textbox.irow += 1
+                    self.textbox.icol = min(self.textbox.icol,len(self.textbox.text[self.textbox.irow])) #makes sure column is not greater than number in the row
+            elif kp[K_LEFT]:
+                #moves insertion point left
+                if self.textbox.icol > 0:
+                    self.textbox.icol -= 1
+                elif self.textbox.irow > 0:
+                    self.textbox.irow -= 1 #moves the insertion point to the end of the above line if they move left of current line
+                    self.textbox.icol = len(self.textbox.text[self.textbox.irow])
+            elif kp[K_RIGHT]:
+                #moves insertion point right
+                if self.textbox.icol < len(self.textbox.text[self.textbox.irow]):
+                    self.textbox.icol += 1
+                elif self.textbox.irow < self.textbox.lines-1:
+                    self.textbox.irow += 1 #moves the insertion point to the beginning of the below line if they move right of current line
+                    self.textbox.icol = 0
             else:
                 if kp[K_BACKSPACE]:
-                    self.textbox.delete()
+                    self.textbox.backspace()
                 elif 1 in kp:
                     self.textbox.writeto(keypressed) #writes keypressed to texbox
     def outside(self):
@@ -532,7 +654,7 @@ class Text(Tool):
             self.hastextbox = False
             currtool.textbox.drawtext(screen)
     def drawsprite(self,screen):
-        mx,my = mouse.get_pos()
+        mx,my = mouse.get_pos()     
         screen.blit(self.icon,(mx-20,my-10))
 #-------------------------------------------Select Tool
 class Select(Tool):
@@ -568,6 +690,7 @@ class Select(Tool):
                 pass
             elif not Rect(self.x,self.y,self.width,self.height).collidepoint(mx,my):
                 #if the box exists and user doesn't click it, the box disappears
+                #we draw the box and turn the hasbox boolean to False so that we stop drawing the box
                 try:
                     self.selectedbox = transform.smoothscale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
                 except:
@@ -1075,7 +1198,7 @@ kotonohastamp = Stamp(kotonohakatsura,yanderekotonoha) #Kotonoha Katsura stamp
 lucystamp = Stamp(lucy,yanderelucy) #Lucy stamp
 inoristamp = Stamp(inoriyuzuriha,yandereinori) #Inori Yuzuriha stamp
 tokostamp = Stamp(tokofukawa,genocidersyo) #Toko Fukawa stamp
-ryokostamp = Stamp(ryokoasakura) #Ryoko Asakura stamp
+ryokostamp = Stamp(ryokoasakura,yandereryoko) #Ryoko Asakura stamp
 #DROP DOWN BOXES
 fontdropdown = DropDownBox(20,390,[Button("font",comicsans.render("Comic Sans MS",True,BLACK),20,410,"Change Font-Family",200,20,"comicsansms"),
                                    Button("font",arial.render("Arial",True,BLACK),20,430,"Change Font-Family",200,20,"arial"),
@@ -1108,12 +1231,12 @@ tools = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follow
          Button(filltool,fillbucket,80,250,"Fill tool: Fill an area with a colour (Warning: uses a lot of CPU)"),
          Button("save",saveicon,1120,100,"Save your work of Deadication",60,60),
          Button("open",openicon,1120,170,"Open a previously saved image - right click to open without deleting current work",60,60)]#buttons of all tools user can press
-stamps = [[Button(yunostamp,yunoface,550,690,"Paste the cute yet scary Yuno Gasai, of whom violence is no problem",60,60),
-         Button(kotonohastamp,kotonohaface,610,690,"Paste the shy yet violent Kotonoha Katsura, who easily goes insane",60,60),
-         Button(lucystamp,lucyface,670,690,"Paste the pretty yet ruthless Lucy, who has an amnesiac alter-ego known as Nyu",60,60),
-         Button(inoristamp,inoriface,730,690,"Paste the quiet yet deadly Inori Yuzuriha, in whom the crazy Mana Ouma lives",60,60),
-         Button(tokostamp,tokoface,790,690,"Paste the antisocial but sadistic Toko Fukawa, who has an alter-ego called Genocider Syo",60,60),
-         Button(ryokostamp,ryokoface,850,690,"Paste the apparently cheerful but emotionless Ryoko Asakura, who'll use violence to achieve her goals",60,60)]]
+stamps = [[Button(yunostamp,yunoface,600,690,"Paste the cute yet scary Yuno Gasai, of whom violence is no problem",60,60),
+         Button(kotonohastamp,kotonohaface,660,690,"Paste the shy yet violent Kotonoha Katsura, who easily goes insane",60,60),
+         Button(lucystamp,lucyface,720,690,"Paste the pretty yet ruthless Lucy, who has an amnesiac alter-ego known as Nyu",60,60),
+         Button(inoristamp,inoriface,780,690,"Paste the quiet yet deadly Inori Yuzuriha, in whom the crazy Mana Ouma lives",60,60),
+         Button(tokostamp,tokoface,840,690,"Paste the antisocial but sadistic Toko Fukawa, who has an alter-ego called Genocider Syo",60,60),
+         Button(ryokostamp,ryokoface,900,690,"Paste the apparently cheerful but emotionless Ryoko Asakura, who'll use violence to achieve her goals",60,60)]]
 stampage = 0 #which stamp page are we on
 #^stamp's 2-d list, each nested list contains the stamps for one stamp page
 tools += stamps[0] #adds the first page of stamps to tools
@@ -1137,7 +1260,7 @@ comicsans.set_underline(True) #underlines mini-titles
 tooltitle = comicsans.render("TOOLS",True,BLACK) #Title of tools section
 screen.blit(tooltitle,(20,70))
 ystamptitle = comicsans.render("STAMPS OF DEADICATION",True,BLOODRED) #Title of Yandere Character Stamps section
-screen.blit(ystamptitle,(550,660))
+screen.blit(ystamptitle,(600,660))
 screen.blit(comicsans.render("FONT-SIZE",True,BLACK),(60,350))
 comicsans.set_underline(False)
 #----COLOR PALETTE----#
@@ -1153,6 +1276,7 @@ palbuttons = [Button("color",Rect(50,506,20,20),50,506,"",20,20,BLACK),
               Button("color",Rect(110,506,20,20),110,506,"",20,20,GREEN),
               Button("color",Rect(130,506,20,20),130,506,"",20,20,BLUE),
               Button("color",Rect(150,506,20,20),150,506,"",20,20,PINK)]#buttons for more specific colors
+gradsel = GradSel(300,690,250,49)
 #----other important variables----#
 lastclick = "" #keeps track of last click
 filler = screen.copy() #screen filler - used for mouse sprites and toolbits and other temporary pop-ups
@@ -1208,6 +1332,15 @@ while running:
                 #if user clicks shape drop down menu
                 lastclick = "shapedropdown"
                 shapedropdown.clickon(screen)
+            elif gradsel.istouch():
+                #if user clicked gradient selector
+                lastclick = "gradsel"
+                if e.button == 1:
+                    #left click
+                    gradsel.lclick(screen)
+                elif e.button == 3:
+                    #right click
+                    gradsel.rclick(screen)
             elif palrect.collidepoint(mx,my):
                 #if user clicks palette
                 lastclick = "palette"
@@ -1376,6 +1509,8 @@ while running:
     for b in palbuttons:
         b.display(screen)
     screen.blit(palette,(0,546))
+    #----DRAWING GRADIENT SELECTOR----#
+    gradsel.draw(screen)
     #----DRAWING BUTTONS----#
     for b in tools:
         b.display(screen)
@@ -1408,6 +1543,9 @@ while running:
                 elif mb[2]:
                     rcol = screen.get_at((mx,my))
                     pspot2 = (mx,my) #changes position of right-mouse circle on canvas
+            elif gradsel.istouch() and lastclick == "gradsel":
+                #gradient selector mouse hold
+                gradsel.cont(screen)
     elif mb[1]:
         pass
     else:
@@ -1435,6 +1573,7 @@ while running:
             shapedropdown.highlighted = True
         else:
             shapedropdown.highlighted = False #sets highlighted of shapedropdown box
+        gradsel.mouseup(screen) #if user isn't clicking the mouse we call the gradient selector mouseup method
     #----SCREEN SAVING----#  
     filler = screen.copy() #copies all updates into filler
     #----Temporary drawings that should never stick to screen (e.g. sprites and toolbits)----#
@@ -1482,6 +1621,8 @@ while running:
     #DRAWS CIRCLES OF COLOR INDICATION ON PALETTE
     draw.circle(screen,WHITE,pspot1,10,1)
     draw.circle(screen,BLOODRED,pspot2,10,1)
+    #DRAWS GRADIENT SELECTOR SELECTED LINE
+    gradsel.drawSel(screen)
     #DRAWS MOUSE SPRITE
     if canvas.collidepoint(mx,my):
         mouse.set_visible(False)
