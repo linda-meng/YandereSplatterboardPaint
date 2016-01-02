@@ -26,14 +26,14 @@ display.flip()
 #data that can never change no matter what user does
 #MUSIC (Really lags up the program startup)
 mixer.init()
-'''music = [mixer.Sound("music/MiraiNikkiOP.ogg"),
+music = [mixer.Sound("music/MiraiNikkiOP.ogg"),
          mixer.Sound("music/InnocentBlue.ogg"),
          mixer.Sound("music/NeverSayNever.ogg"),
          mixer.Sound("music/BoukenDesho.ogg"),
          mixer.Sound("music/Lillium.ogg"),
          mixer.Sound("music/My_Dearest.ogg")] #all music (the playlist)
-#shuffle(music) #shuffles the music
-#music[0].play()'''
+shuffle(music) #shuffles the music
+music[0].play()
 song = 0 #which song are we playing
 screen.blit(image.load("images/LoadScreen2.png"),(0,0)) #second loading screen - means music is loaded and loading is almost done
 display.flip()
@@ -693,6 +693,7 @@ class Select(Tool):
         #5 = change y; 6 = change height; 7 = change x; 8 = change width
     def lclick(self,screen):
         global cfiller
+        global canvas
         mx,my = mouse.get_pos()
         self.clicked = 0
         if self.hasmenu:
@@ -731,18 +732,19 @@ class Select(Tool):
                     self.selectedbox = transform.scale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
                 screen.blit(cfiller,(300,50))
                 self.hasbox = False
-                screen.blit(self.selectedbox,(self.x,self.y))
+                screen.blit(self.selectedbox,(self.x,self.y)) #blits the selected box permanently
             else:
                 #if user did not try to change size we move the box
                 self.dx = mx-self.x
                 self.dy = my-self.y #sets difference between corner and mouse co-ord
         else:
-            global canvas
             cfiller = screen.copy().subsurface(canvas) #makes cfiller canvas before the click
             self.x = mx
             self.y = my
             self.forming = True
     def rclick(self,screen):
+        global cfiller
+        global canvas
         mx,my = mouse.get_pos()
         self.clicked = 1
         if self.hasbox:
@@ -762,9 +764,18 @@ class Select(Tool):
                         if b.istouch():
                             b.clickon(screen) #clicks on button
                             break
+            else:
+                if not Rect(self.x,self.y,self.width,self.height).collidepoint(mx,my):
+                    #if the use clicks outside of the box and no menu is open we remove the box
+                    try:
+                        self.selectedbox = transform.smoothscale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
+                    except:
+                        self.selectedbox = transform.scale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
+                    screen.blit(cfiller,(canvas[0],canvas[1]))
+                    self.hasbox = False
+                    screen.blit(self.selectedbox,(self.x,self.y)) #blits the selected box permanently
         else:
             #if there exists no box, we make one
-            global canvas
             cfiller = screen.copy().subsurface(canvas) #makes cfiller canvas before the click
             self.x = mx
             self.y = my
@@ -1352,14 +1363,13 @@ boxcp = None #clipboard for boxes (created by the select tool)
 #----MAIN LOOP----#
 while running:
     #----MUSIC HANDLER----#
-    '''
     if not mixer.get_busy():
         song += 1
         if song >= len(music):
             #resets the playlist
             shuffle(music) #randomizes playlist
             song = 0
-        music[song].play()'''
+        music[song].play()
     screen.blit(filler,(0,0)) #fills the screen to hide toolbit, mouse sprites and other pop-ups
     #----EVENT LOOP----#
     for e in event.get():
