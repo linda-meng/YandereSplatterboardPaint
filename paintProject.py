@@ -678,18 +678,35 @@ class Select(Tool):
     #selects an area and makes it moveable
     def __init__(self):
         self.icon = crosscursor
+        self.hasmenu = False #has the tool a menu set?
+        self.menux,self.menuy = 0,0 #menu position
+        self.menurect = Rect(self.menux,self.menuy,100,200) #menu rect
+        self.menu = [Button("save",timesnr.render("Save selected area as...",True,BLACK),self.menux+5,self.menuy+5,"",200,20)] #menu
         self.hasbox = False #has the tool a selected box set?
         self.forming = False #is the box being formed?
         self.selectedbox = None #selected box by shape
         self.x,self.y,self.width,self.height = 0,0,0,0 #dimensions and co-ords of selected box
         self.dx,self.dy = 0,0 #difference in x and y between mouse and corner of selectedbox
+        self.clicked = 0 #which button clicked? 0 means left mouse, 1 means right mouse
         self.op = 0 #option of size change the user tried (this is determined by where user clicks; each option affects different parts of the box, like either x or width, y or height, etc.)
         #0 = No change; 1: change x and y; 2: change width and y; 3: change x and height; 4: change width and height;
         #5 = change y; 6 = change height; 7 = change x; 8 = change width
     def lclick(self,screen):
         global cfiller
         mx,my = mouse.get_pos()
-        if self.hasbox:
+        self.clicked = 0
+        if self.hasmenu:
+            self.clicked = 1 #if there exists a menu, we treat it as a right click - this is so the box doesn't move when cancelling a menu item
+            #if a menu exists we handle it
+            if not self.menurect.collidepoint(mx,my):
+                self.hasmenu = False #if user did not click the menu it is removed
+            else:
+                #if user clicks the menu we handle the clicking
+                for b in self.menu:
+                    if b.istouch():
+                        b.clickon(screen) #clicks on button
+                        break
+        elif self.hasbox:
             #check if they press a size change point on the box
             sizepoints = [(self.x-1,self.y-1),(self.x+self.width+1,self.y-1),
                           (self.x-1,self.y+self.height+1),(self.x+self.width+1,self.y+self.height+1),
@@ -726,7 +743,32 @@ class Select(Tool):
             self.y = my
             self.forming = True
     def rclick(self,screen):
-        self.lclick(screen) #identical to left click
+        mx,my = mouse.get_pos()
+        self.clicked = 1
+        if self.hasbox:
+            if Rect(self.x,self.y,self.width,self.height).collidepoint(mx,my) and not self.hasmenu:
+                #if there exists no menu we create one
+                self.menux,self.menuy = mx,my
+                self.menurect = Rect(mx,my,200,20)
+                self.hasmenu = True
+                self.menu = [Button("save",timesnr.render("Save selected area as...",True,BLACK),self.menux+5,self.menuy+5,"",200,20,
+                                    self.selectedbox)] #re-defines menu
+            elif self.hasmenu:
+                if not self.menurect.collidepoint(mx,my):
+                    self.hasmenu = False #if user did not click the menu it is removed
+                else:
+                    #if user clicks the menu we handle the clicking
+                    for b in self.menu:
+                        if b.istouch():
+                            b.clickon(screen) #clicks on button
+                            break
+        else:
+            #if there exists no box, we make one
+            global canvas
+            cfiller = screen.copy().subsurface(canvas) #makes cfiller canvas before the click
+            self.x = mx
+            self.y = my
+            self.forming = True
     def mouseup(self,screen):
         #if there is no box, then this defines the box
         if self.forming:
@@ -750,7 +792,7 @@ class Select(Tool):
     def cont(self,screen):
         global cfiller
         mx,my = mouse.get_pos()
-        if self.hasbox:
+        if self.hasbox and not self.clicked:
             #if there is a box, the we move it or change size
             if self.op == 0:
                 self.x = mx-self.dx
@@ -791,6 +833,7 @@ class Select(Tool):
         elif self.hasbox:
             #if the last click was the canvas, we continue drawing the box
             pass
+        self.hasmenu = False #turns off menu
     def keypress(self,screen,keypressed):
         #handles key methods for a box
         global boxcp
@@ -1133,7 +1176,13 @@ class Button():
                     ext = ""
                 else:
                     ext = ".jpg"
-                image.save(screen.copy().subsurface(canvas), loadname + ext)
+                if self.arg2 == None:
+                    image.save(screen.copy().subsurface(canvas), loadname + ext) #saves canvas if no second argument
+                else:
+                    image.save(self.arg2,loadname + ext) #saves the second argument if there is one
+            if self.arg2 != None:
+                screen.blit(self.arg2,(selectool.x,selectool.y)) #blits the image to the screen, as we know the select tool is the only one who can call this
+                selectool.hasmenu = False
             mouse.set_visible(False)
         elif self.func == "open":
             #open function
@@ -1591,6 +1640,13 @@ while running:
         else:
             shapedropdown.highlighted = False #sets highlighted of shapedropdown box
         gradsel.mouseup(screen) #if user isn't clicking the mouse we call the gradient selector mouseup method
+        if selectool.hasmenu:
+            #if the selectool has a menu we highlight the highlighted button
+            for b in selectool.menu:
+                if b.istouch():
+                    b.highlighted = True
+                else:
+                    b.highlighted = False
     #----SCREEN SAVING----#  
     filler = screen.copy() #copies all updates into filler
     #----Temporary drawings that should never stick to screen (e.g. sprites and toolbits)----#
@@ -1618,6 +1674,11 @@ while running:
                           (currtool.x-1,currtool.y+(currtool.height+1)//2),(currtool.x+currtool.width+1,currtool.y+(currtool.height+1)//2)] #points in which the size of the box can be altered
             for x,y in sizepoints:
                 draw.rect(screen,(255,50,50,150),(x-5,y-5,10,10),1)
+        #handles selected box's menu
+        if selectool.hasmenu:
+            draw.rect(screen,WHITE,selectool.menurect)
+            for b in selectool.menu:
+                b.display(screen)
     #HANDLES DROP DOWN MENUS
     if fontdropdown.menudown:
         for i in fontdropdown.items:
@@ -1641,10 +1702,12 @@ while running:
     #DRAWS GRADIENT SELECTOR SELECTED LINE
     gradsel.drawSel(screen)
     #DRAWS MOUSE SPRITE
-    if canvas.collidepoint(mx,my):
+    if canvas.collidepoint(mx,my) and (not selectool.hasmenu or not selectool.menurect.collidepoint(mx,my)):
+        #if the mouse is above the canvas and not above a menu, we draw a sprite
         mouse.set_visible(False)
         currtool.drawsprite(screen)
     else:
+        #else we draw the mouse
         mouse.set_visible(True)
     display.flip()
 root.destroy()
