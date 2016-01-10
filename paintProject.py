@@ -25,19 +25,21 @@ display.flip()
 #----PERMANENT CONSTANT DATA----#
 #data that can never change no matter what user does
 #MUSIC (Really lags up the program startup)
+init()
 mixer.init()
-music = [mixer.Sound("music/MiraiNikkiOP.ogg"),
-         mixer.Sound("music/InnocentBlue.ogg"),
-         mixer.Sound("music/NeverSayNever.ogg"),
-         mixer.Sound("music/BoukenDesho.ogg"),
-         mixer.Sound("music/Lillium.ogg"),
-         mixer.Sound("music/My_Dearest.ogg")] #all music (the playlist)
+music = [mixer.Sound("music/MiraiNikkiOP.ogg")]
+''',
+mixer.Sound("music/InnocentBlue.ogg"),
+mixer.Sound("music/Lillium.ogg"),
+mixer.Sound("music/My_Dearest.ogg"),
+mixer.Sound("music/NeverSayNever.ogg"),
+mixer.Sound("music/BoukenDesho.ogg")
+'''
 shuffle(music) #shuffles the music
 music[0].play()
 song = 0 #which song are we playing
 screen.blit(image.load("images/LoadScreen2.png"),(0,0)) #second loading screen - means music is loaded and loading is almost done
 display.flip()
-sleep(1)
 #COLOR
 WHITE = (255,255,255)
 BLACK = (0,0,0)
@@ -59,7 +61,8 @@ timesnr = font.SysFont("timesnewroman",15)
 lucidaconsole = font.SysFont("lucidaconsole",15)
 impact = font.SysFont("impact",15)
 vladimirscript = font.SysFont("vladimirscript",15)
-titlefont = font.SysFont("comicsansms",25)
+chiller = font.SysFont("chiller",15)
+titlefont = font.SysFont("chiller",36)
 #SPRITES AND IMAGES
 pencilsprite = transform.scale(image.load("images/pencil.png"),(40,40))
 eraser = transform.scale(image.load("images/eraser.gif"),(40,40))
@@ -76,6 +79,9 @@ ibeam = transform.scale(image.load("images/ibeam.png"),(40,40))
 crosscursor = transform.scale(image.load("images/crosscursor.gif"),(40,40))
 saveicon = transform.scale(image.load("images/saveicon.png"),(60,60))
 openicon = transform.scale(image.load("images/openicon.png"),(60,60))
+undoicon = transform.scale(image.load("images/undo.png"),(60,60))
+redoicon = transform.flip(undoicon,True,False)
+clearicon = transform.scale(image.load("images/Red_X.png"),(60,60))
 yunoface = transform.smoothscale(image.load("images/yunoface.png"),(60,60))
 yunogasai = image.load("images/yunogasai.png")
 yandereyuno = transform.smoothscale(image.load("images/yandereyuno.png"),(220,300))
@@ -96,7 +102,7 @@ ryokoasakura = image.load("images/ryokoasakura.png")
 yandereryoko = image.load("images/yandereryoko.png")
 redarrow = transform.scale(image.load("images/RedArrowDown.png"),(30,30))
 #Finalizes Screen
-screen.fill((255,150,150))
+screen.blit(image.load("images/background.png"),(0,0))
 running = True
 #--------------------UI CLASSES (like textboxes, drop down boxes)--------------------#
 #-----------------------------TEXTBOX
@@ -191,7 +197,7 @@ class DropDownBox():
         self.y = y #co-ords
         self.itemrects = [Rect(i.x,i.y,i.width,i.height) for i in self.items]#item rects
         self.menudown = False #is the menu down?
-        self.mainrect = Rect(self.x,self.y,self.width,self.height)#main rect of the drop down box (not it's items)
+        self.mainrect = Rect(self.x,self.y,self.width+20,self.height)#main rect of the drop down box (not it's items)
         totwidth = sum([i.width for i in self.items])#sum of all the item's widths
         totheight = sum([i.height for i in self.items])#sum of all the item's heights
         self.menurect = Rect(self.x,self.y+self.height,totwidth,totheight) #rect of the menu portion of the dropdown box
@@ -202,12 +208,15 @@ class DropDownBox():
             i.display(screen)
         self.menudown = True
     def drawbox(self,screen):
-        if self.highlighted:
+        if self.istouch():
             col = LIGHT_GREY
         else:
             col = WHITE
-        draw.rect(screen,col,(self.x,self.y,self.width+10,self.height)) #draws box
+        draw.rect(screen,col,(self.x,self.y,self.width+20,self.height)) #draws box
+        draw.rect(screen,BLACK,(self.x,self.y,self.width+20,self.height),1) #draws box's border
         screen.blit(comicsans.render(self.name,True,BLACK),(self.x+2,self.y+2))
+        draw.rect(screen,GREY,(self.x+self.width,self.y,20,20)) #draws box around arrow
+        screen.blit(transform.scale(redarrow,(20,20)),(self.x+self.width,self.y)) #draws drop down box's arrow
     def istouch(self):
         #states whether mouse is touching the mainrect of drop down menu
         mx,my = mouse.get_pos()
@@ -615,6 +624,9 @@ class Text(Tool):
             #makes text bigger
             self.fontsize += 1
             self.fontsize = min(self.fontsize,99) #makes sure fontsize isn't greater than 99
+        self.textbox.changefont(self.fontfamily,self.fontsize)
+        self.textbox.width = max([self.textbox.tbfont.render(self.textbox.text[i],True,BLACK).get_width() for i in range(self.textbox.lines)]) #sets width to be maximum of the lines
+        self.textbox.height = self.textbox.tbfont.render(self.textbox.text[-1],True,BLACK).get_height()*self.textbox.lines #sets height
     def keypress(self,screen,keypressed):
         #the only tool who uses this method
         #it allows the tool to interact with the user's keyboard
@@ -872,6 +884,7 @@ class Spray(Tool):
         self.icon = spraycan
         self.col = lcol
         self.sx,self.sy = 0,0
+        self.size = 10
     def lclick(self,screen):
         global lcol
         mx,my = mouse.get_pos()
@@ -887,19 +900,34 @@ class Spray(Tool):
         #same algorithm as brush or line function but with random dots instead of full circles
         dist = hypot(mx-self.sx,my-self.sy)
         dist = max(1,dist) #makes sure distance isn't 0
-        lx = (mx-self.sx)/dist
-        ly = (my-self.sy)/dist
-        for i in range(int(dist)):
-            for j in range(3):
-                randang = randint(0,359) #random angle
-                randhy = randint(0,10) #random hypotenuse
-                screen.set_at((int(self.sx+lx*i+cos(randang)*randhy),int(self.sy+ly*i+sin(randang)*randhy)),self.col) #random spray
+        lx = (mx-self.sx)*(0.8*self.size)/dist
+        ly = (my-self.sy)*(0.8*self.size)/dist
+        for i in range(max(1,int(dist)//int(self.size*0.8))):
+            for j in range(int(self.size**1.5)):
+                #randang = randint(0,359) #random angle
+                #randhy = randint(0,self.size) #random hypotenuse
+                randw = randint(-self.size,self.size) #random width and height
+                randh = randint(-self.size,self.size)
+                if hypot(randw,randh) <= self.size:
+                    screen.set_at((int(self.sx+lx*i+randw),int(self.sy+ly*i+randh)),self.col) #random spray
         self.sx,self.sy = mx,my
+    def scroll(self,screen,forward=True):
+        if forward:
+            #makes size smaller
+            self.size -= 1
+            self.size = max(2,self.size) #limits size at 2
+        else:
+            #makes size bigger
+            self.size += 1
+            self.size = min(512,self.size) #limits size at 512
     def outside(self):
         #continues drawing if the last click was canvas - it won't draw outside of canvas because of clipping before calling this method
         global lastclick
         if lastclick == "canvas":
             self.cont(screen)
+    def keypress(self,screen,keypressed=""):
+        if keypressed == " ":
+            self.size = 10 #resets size if space is pressed
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
         screen.blit(self.icon,(mx-10,my))
@@ -940,7 +968,14 @@ class Shape(Tool):
         if self.shape == "rect":
             sx = min(self.sx,mx) #sx becomes smaller of startx and mouse-x
             sy = min(self.sy,my) #same idea as sx
-            draw.rect(screen,self.col,(sx,sy,abs(self.sx-mx),abs(self.sy-my)),self.width)
+            if self.width == 0:
+                draw.rect(screen,self.col,(sx,sy,abs(self.sx-mx),abs(self.sy-my)))
+            else:
+                #draws 4 lines if it doesn't fill the rect
+                draw.line(screen,self.col,(sx-self.width/2+1,sy),(sx+abs(self.sx-mx)+self.width/2,sy),self.width)
+                draw.line(screen,self.col,(sx,sy),(sx,sy+abs(self.sy-my)),self.width)
+                draw.line(screen,self.col,(sx+abs(self.sx-mx),sy),(sx+abs(self.sx-mx),sy+abs(self.sy-my)),self.width)
+                draw.line(screen,self.col,(sx-self.width/2+1,sy+abs(self.sy-my)),(sx+abs(self.sx-mx)+self.width/2,sy+abs(self.sy-my)),self.width)
         elif self.shape == "ellipse":
             sx = min(self.sx,mx) #sx becomes smaller of startx and mouse-x
             sy = min(self.sy,my) #same idea as sx
@@ -1106,7 +1141,7 @@ class Button():
     def display(self,screen):
         #displays button
         global currtool
-        if self.highlighted:
+        if self.istouch():
             dispcol = RED
         else:
             dispcol = WHITE
@@ -1133,6 +1168,8 @@ class Button():
         global shapetool
         global root
         global cfiller
+        global mem
+        global mem2
         if issubclass(type(self.func),Tool):
             #tool change button
             currtool = self.func
@@ -1181,16 +1218,9 @@ class Button():
             mouse.set_visible(True)
             root = Tk()
             root.withdraw() #resets window
-            loadname = filedialog.asksaveasfilename()
+            loadname = filedialog.asksaveasfilename(defaultextension=".jpg")
             if loadname:
-                if loadname[-4:] in [".jpg",".png",".bmp",".gif"]:
-                    ext = ""
-                else:
-                    ext = ".jpg"
-                if self.arg2 == None:
-                    image.save(screen.copy().subsurface(canvas), loadname + ext) #saves canvas if no second argument
-                else:
-                    image.save(self.arg2,loadname + ext) #saves the second argument if there is one
+                image.save(screen.copy().subsurface(canvas), loadname)
             if self.arg2 != None:
                 screen.blit(self.arg2,(selectool.x,selectool.y)) #blits the image to the screen, as we know the select tool is the only one who can call this
                 selectool.hasmenu = False
@@ -1203,32 +1233,50 @@ class Button():
                 currtool.hastextbox = False
             root = Tk()
             root.withdraw() #resets window
-            loadname = filedialog.askopenfilename()
+            loadname = filedialog.askopenfilename(filetypes=[("Images", "*.png;*.bmp;*.jpg;*.jpeg")])
             mouse.set_visible(True)
             if loadname:
-                if loadname[-4:] in [".jpg",".png",".gif",".bmp"]:
-                    if len(mem) >= 256:
-                        del mem[0] #removes the last thing memorized if we're over the limit
-                    mem2 = []
-                    mem.append(screen.copy())
-                    if not rclick:
-                        draw.rect(screen,WHITE,canvas) #clears everything previously on the canvas if user does not hold shift
-                    cfiller = screen.copy().subsurface(canvas)
-                    opened_image = image.load(loadname)
-                    img_ratio = opened_image.get_width()/opened_image.get_height()
-                    if opened_image.get_width() >= opened_image.get_height():
-                        width = (min(opened_image.get_width(),800))
-                        height = (int(width/img_ratio))
-                    else:
-                        height = (min(opened_image.get_height(),600))
-                        width = (int(height*img_ratio))
-                    currtool = selectool #changes current tool to select tool
-                    currtool.hasbox = True
-                    currtool.selectedbox = transform.scale(opened_image,(width,height)) #makes opened image the box's image
-                    currtool.x,currtool.y,currtool.width,currtool.height = 300,50,width,height #creating a select box around uploaded image
+                if len(mem) >= 256:
+                    del mem[0] #removes the last thing memorized if we're over the limit
+                mem2 = []
+                mem.append(screen.copy())
+                if not rclick:
+                    draw.rect(screen,WHITE,canvas) #clears everything previously on the canvas if user does not hold shift
+                cfiller = screen.copy().subsurface(canvas)
+                opened_image = image.load(loadname)
+                img_ratio = opened_image.get_width()/opened_image.get_height()
+                if opened_image.get_width() >= opened_image.get_height():
+                    width = (min(opened_image.get_width(),800))
+                    height = (int(width/img_ratio))
                 else:
-                    print("Invalid image")
+                    height = (min(opened_image.get_height(),600))
+                    width = (int(height*img_ratio))
+                currtool = selectool #changes current tool to select tool
+                currtool.hasbox = True
+                currtool.selectedbox = transform.scale(opened_image,(width,height)) #makes opened image the box's image
+                currtool.x,currtool.y,currtool.width,currtool.height = 300,50,width,height #creating a select box around uploaded image
             mouse.set_visible(False)
+        elif self.func == "undo":
+            #undo button
+            if len(mem) > 0:
+                mem2.append(screen.copy()) #appends the current screen to redo list
+                prevsave = mem.pop(-1) #prevsave = last screen save
+                screen.blit(prevsave,(0,0)) #fills the screen with new save
+        elif self.func == "redo":
+            #redo button
+            if len(mem2) > 0:
+                if len(mem) >= 256:
+                    del mem[0] #removes the last thing memorized if we're over the limit
+                mem.append(screen.copy()) #appends current screen to undo list
+                prevsave = mem2.pop(-1) #gets new screen from redo list
+                screen.blit(prevsave,(0,0))
+        elif self.func == "clear":
+            #clear button
+            if len(mem) >= 256:
+                del mem[0]
+            mem.append(screen.copy())
+            mem2 = [] #adds to undo list memory and deletes all of redo list memory
+            draw.rect(screen,WHITE,canvas) #fills canvas white
     def disptoolbit(self,screen):
         #displays the toolbit so that user can know what button's tool does
         global comicsans
@@ -1243,13 +1291,12 @@ class Button():
             smallfont = font.SysFont("comicsansms",10) #small font
             screen.blit(smallfont.render("RIGHT CLICK ON CANVAS FOR YANDERE VERSION",True,BLOODRED),(mx+5,my-30))
             screen.blit(smallfont.render("[Scroll to change size, space to reset size]",True,BLOODRED),(mx+5,my-17))
-        elif self.func in [linetool,brushtool,erasertool]:
+        elif self.func in [linetool,brushtool,erasertool,spraytool]:
             #if it's a resizable and space resettable tool we still add an extra line
             smallfont = font.SysFont("comicsansms",10) #small font
             width = max(width,smallfont.render("[Scroll to change size, space to reset size]",True,BLOODRED).get_width()+20)
             draw.rect(screen,BLACK,(mx,my-40,width,40))
             screen.blit(comicsans.render(self.toolbit,True,BLOODRED),(mx+5,my-35))
-
             screen.blit(smallfont.render("[Scroll to change size, space to reset size]",True,BLOODRED),(mx+5,my-17))
         else:
             draw.rect(screen,BLACK,(mx,my-30,width,30))
@@ -1277,20 +1324,20 @@ inoristamp = Stamp(inoriyuzuriha,yandereinori) #Inori Yuzuriha stamp
 tokostamp = Stamp(tokofukawa,genocidersyo) #Toko Fukawa stamp
 ryokostamp = Stamp(ryokoasakura,yandereryoko) #Ryoko Asakura stamp
 #DROP DOWN BOXES
-fontdropdown = DropDownBox(20,390,[Button("font",comicsans.render("Comic Sans MS",True,BLACK),20,410,"Change Font-Family",200,20,"comicsansms"),
-                                   Button("font",arial.render("Arial",True,BLACK),20,430,"Change Font-Family",200,20,"arial"),
-                                   Button("font",timesnr.render("Times New Roman",True,BLACK),20,450,"Change Font-Family",200,20,"timesnewroman"),
-                                   Button("font",lucidaconsole.render("Lucida Console",True,BLACK),20,470,"Change Font-Family",200,20,"lucidaconsole"),
-                                   Button("font",impact.render("Impact",True,BLACK),20,490,"Change Font-Family",200,20,"impact"),
-                                   Button("font",vladimirscript.render("Vladimir Script",True,BLACK),20,510,"Change Font-Family",200,20,"vladimirscript")],"SELECT FONT")
-shapedropdown = DropDownBox(120,200,[Button("shape",comicsans.render("Rectangle",True,BLACK),120,220,"Change Shape",170,20,"rect"),
-                                     Button("shape",comicsans.render("Ellipse",True,BLACK),120,240,"Change Shape",170,20,"ellipse")],"CHANGE SHAPE")
+fontdropdown = DropDownBox(20,390,[Button("font",comicsans.render("Comic Sans MS",True,BLACK),20,410,"Change Font-Family",136,20,"comicsansms"),
+                                   Button("font",arial.render("Arial",True,BLACK),20,430,"Change Font-Family",136,20,"arial"),
+                                   Button("font",timesnr.render("Times New Roman",True,BLACK),20,450,"Change Font-Family",136,20,"timesnewroman"),
+                                   Button("font",lucidaconsole.render("Lucida Console",True,BLACK),20,470,"Change Font-Family",136,20,"lucidaconsole"),
+                                   Button("font",impact.render("Impact",True,BLACK),20,490,"Change Font-Family",136,20,"impact"),
+                                   Button("font",vladimirscript.render("Vladimir Script",True,BLACK),20,510,"Change Font-Family",136,20,"vladimirscript")],"SELECT FONT")
+shapedropdown = DropDownBox(120,200,[Button("shape",comicsans.render("Rectangle",True,BLACK),120,220,"Change Shape",140,20,"rect"),
+                                     Button("shape",comicsans.render("Ellipse",True,BLACK),120,240,"Change Shape",140,20,"ellipse")],"CHANGE SHAPE")
 #^drop down box for fonts
 fontdropdown.items[0].selected = True
 shapedropdown.items[0].selected = True
 #Fontsize buttons
-fontsizebuttons = [Button("fontsize",comicsans.render(" <",True,BLACK),60,370,"Change fontsize",20,20,-1),
-                   Button("fontsize",comicsans.render(" >",True,BLACK),100,370,"Change fontsize",20,20,1)]
+fontsizebuttons = [Button("fontsize",comicsans.render(" <",True,BLACK),70,370,"Change fontsize",20,20,-1),
+                   Button("fontsize",comicsans.render(" >",True,BLACK),110,370,"Change fontsize",20,20,1)]
 #shape width buttons
 shapewidthbuttons = [Button("shapewidth",comicsans.render(" <",True,BLACK),120,220,"Change width",20,20,-1),
                    Button("shapewidth",comicsans.render(" >",True,BLACK),250,220,"Change width",20,20,1)]
@@ -1306,8 +1353,12 @@ tools = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follow
          Button(linetool,linesprite,80,150,"Line tool: Draw a line"),
          Button(shapetool,roundedrect,80,200,"Shape tool: Draw a shape to give your Deadication some structure"),
          Button(filltool,fillbucket,80,250,"Fill tool: Fill an area with a colour (Warning: uses a lot of CPU)"),
-         Button("save",saveicon,1120,100,"Save your work of Deadication",60,60),
-         Button("open",openicon,1120,170,"Open a previously saved image - right click to open without deleting current work",60,60)]#buttons of all tools user can press
+         Button("save",saveicon,1120,100,"Save your work of Deadication (Ctrl-S)",60,60),
+         Button("open",openicon,1120,170,"Open a previously saved image (Ctrl-O) - right click to open without deleting current work (Ctrl-Shift-O)",60,60),
+         Button("undo",undoicon,1120,240,"Undo last action on canvas (Ctrl-Z)",60,60),
+         Button("redo",redoicon,1120,310,"Redo last undone action on canvas (Ctrl-Shift-Z)",60,60),
+         Button("clear",clearicon,1120,380,"Clear the canvas (Ctrl-Space)",60,60)]
+#buttons of all tools user can press (as well as other buttons such as save and open)
 stamps = [[Button(yunostamp,yunoface,600,690,"Paste the cute yet scary Yuno Gasai, of whom violence is no problem",60,60),
          Button(kotonohastamp,kotonohaface,660,690,"Paste the shy yet violent Kotonoha Katsura, who easily goes insane",60,60),
          Button(lucystamp,lucyface,720,690,"Paste the pretty yet ruthless Lucy, who has an amnesiac alter-ego known as Nyu",60,60),
@@ -1326,34 +1377,44 @@ cfiller = screen.copy().subsurface(canvas) #canvas filler
 #header and subtitle
 header = titlefont.render("YANDERE",True,BLACK) #header word 1 "YANDERE"
 header2 = titlefont.render("SPLATTERBOARD",True,BLOODRED) #header word 2 "SPLATTERBOARD"
-screen.blit(header,(550,2))
-screen.blit(header2,(680,2))
+screen.blit(header,(580,1))
+screen.blit(header2,(710,1))
 comicsans.set_italic(True) #italicizes subtitle
+draw.rect(screen,BLACK,(605,30,215,20))
+draw.rect(screen,WHITE,(605,30,213,18)) #background for subtitle
 subtitle = comicsans.render("Great art takes Deadication",True,BLACK) #subtitle
 comicsans.set_italic(False)
-screen.blit(subtitle,(610,28))
+screen.blit(subtitle,(610,29))
 #mini-titles
-comicsans.set_underline(True) #underlines mini-titles
+comicsans.set_bold(True) #bolds mini-titles
+draw.rect(screen,BLACK,(19,70,62,24))
+draw.rect(screen,WHITE,(19,70,60,22)) #background for tools mini-title
 tooltitle = comicsans.render("TOOLS",True,BLACK) #Title of tools section
 screen.blit(tooltitle,(20,70))
+draw.rect(screen,BLACK,(599,660,236,24))
+draw.rect(screen,WHITE,(599,660,234,22)) #background for stamps mini-title
 ystamptitle = comicsans.render("STAMPS OF DEADICATION",True,BLOODRED) #Title of Yandere Character Stamps section
 screen.blit(ystamptitle,(600,660))
-screen.blit(comicsans.render("FONT-SIZE",True,BLACK),(60,350))
-comicsans.set_underline(False)
+draw.rect(screen,BLACK,(69,344,104,24))
+draw.rect(screen,WHITE,(69,344,102,22)) #background for font-size mini-title
+screen.blit(comicsans.render("FONT-SIZE",True,BLACK),(70,345))
+comicsans.set_bold(False)
 #----COLOR PALETTE----#
-draw.rect(screen,DARK_GREY,(40,486,150,60)) #drawing background for palette buttons
+draw.rect(screen,DARK_GREY,(25,476,180,80)) #drawing background for palette buttons
 screen.blit(comicsans.render("COLOUR PALETTE",True,WHITE),(50,486)) #blitting title of color palette
-palette = transform.scale(image.load("images/spectrum_chart.jpg"),(300,194))
-palrect = Rect(0,546,300,194) #palette rect
-pspot1 = (0,750) #spot of left mouse color on the palette
-pspot2 = (0,648) #spot of right mouse color on the palette
+draw.rect(screen,BLACK,(24,555,252,182)) #draws border for palette
+palette = transform.scale(image.load("images/spectrum_chart.jpg"),(250,180)) #palette
+palrect = Rect(25,556,250,180) #palette rect
+pspot1 = (25,736) #spot of left mouse color on the palette
+pspot2 = (25,667) #spot of right mouse color on the palette
 palbuttons = [Button("color",Rect(50,506,20,20),50,506,"",20,20,BLACK),
               Button("color",Rect(70,506,20,20),70,506,"",20,20,WHITE),
               Button("color",Rect(90,506,20,20),90,506,"",20,20,RED),
               Button("color",Rect(110,506,20,20),110,506,"",20,20,GREEN),
               Button("color",Rect(130,506,20,20),130,506,"",20,20,BLUE),
               Button("color",Rect(150,506,20,20),150,506,"",20,20,PINK)]#buttons for more specific colors
-gradsel = GradSel(300,690,250,49)
+draw.rect(screen,BLACK,(299,699,277,39))#border for gradient selector
+gradsel = GradSel(300,700,275,36)#gradient selector
 #----other important variables----#
 lastclick = "" #keeps track of last click
 filler = screen.copy() #screen filler - used for mouse sprites and toolbits and other temporary pop-ups
@@ -1426,6 +1487,9 @@ while running:
                 screen.set_clip(canvas)
                 currtool.outside() #runs current tool's outside function, as user clicked outside of canvas
                 screen.set_clip(None)
+                if e.button in [2,4,5]:
+                    #makes sure nothing happens if the use uses middle click
+                    continue
                 #following loop checks for tools/buttons and if we clicked them or not
                 for b in palbuttons:
                     if b.istouch():
@@ -1499,13 +1563,9 @@ while running:
                     elif type(currtool) == Text:
                         currtool.hastextbox = False
                 mouse.set_visible(True)
-                loadname = filedialog.asksaveasfilename()
+                loadname = filedialog.asksaveasfilename(defaultextension=".jpg")
                 if loadname:
-                    if loadname[-4:] in [".jpg",".png",".bmp",".gif"]:
-                        ext = ""
-                    else:
-                        ext = ".jpg"
-                    image.save(screen.copy().subsurface(canvas), loadname + ext)
+                    image.save(screen.copy().subsurface(canvas), loadname)
                 mouse.set_visible(False)
                 root.destroy()
                 root = Tk() #allows user to use window again by resetting the window
@@ -1518,30 +1578,27 @@ while running:
                     elif type(currtool) == Text:
                         currtool.hastextbox = False
                 mouse.set_visible(True)
-                loadname = filedialog.askopenfilename()
+                loadname = filedialog.askopenfilename(filetypes=[("Images", "*.png;*.bmp;*.jpg;*.jpeg")])
                 if loadname:
-                    if loadname[-4:] in [".jpg",".png",".gif",".bmp"]:
-                        if len(mem) >= 256:
-                            del mem[0] #removes the last thing memorized if we're over the limit
-                        mem2 = []
-                        mem.append(screen.copy())
-                        if not kp[K_LSHIFT] and not kp[K_RSHIFT]:
+                    if len(mem) >= 256:
+                        del mem[0] #removes the last thing memorized if we're over the limit
+                    mem2 = []
+                    mem.append(screen.copy())
+                    if not kp[K_LSHIFT] and not kp[K_RSHIFT]:
                             draw.rect(screen,WHITE,canvas) #clears everything previously on the canvas if user does not hold shift
-                        cfiller = screen.copy().subsurface(canvas)
-                        opened_image = image.load(loadname)
-                        img_ratio = opened_image.get_width()/opened_image.get_height()
-                        if opened_image.get_width() >= opened_image.get_height():
-                            width = (min(opened_image.get_width(),800))
-                            height = (int(width/img_ratio))
-                        else:
-                            height = (min(opened_image.get_height(),600))
-                            width = (int(height*img_ratio))
-                        currtool = selectool #changes current tool to select tool
-                        currtool.hasbox = True
-                        currtool.selectedbox = transform.scale(opened_image,(width,height)) #makes opened image the box's image
-                        currtool.x,currtool.y,currtool.width,currtool.height = 300,50,width,height #creating a select box around uploaded image
+                    cfiller = screen.copy().subsurface(canvas)
+                    opened_image = image.load(loadname)
+                    img_ratio = opened_image.get_width()/opened_image.get_height()
+                    if opened_image.get_width() >= opened_image.get_height():
+                        width = (min(opened_image.get_width(),800))
+                        height = (int(width/img_ratio))
                     else:
-                        print("Invalid image")
+                        height = (min(opened_image.get_height(),600))
+                        width = (int(height*img_ratio))
+                    currtool = selectool #changes current tool to select tool
+                    currtool.hasbox = True
+                    currtool.selectedbox = transform.scale(opened_image,(width,height)) #makes opened image the box's image
+                    currtool.x,currtool.y,currtool.width,currtool.height = 300,50,width,height #creating a select box around uploaded image
                 root.destroy()
                 root = Tk() #allows user to use window again by resetting the window
                 root.withdraw()
@@ -1550,6 +1607,10 @@ while running:
                 #CTRL-V
                 #pastes clipboard image
                 if boxcp != None:
+                    if len(mem) >= 256:
+                        del mem[0] #removes the last thing memorized if we're over the limit
+                    mem.append(screen.copy()) #appends current screen to undo list
+                    mem2 = []
                     screen.set_clip(canvas)
                     if selectool.hasbox:
                         #if we have a select box, we paste the image in there instead
@@ -1576,15 +1637,15 @@ while running:
             
     #----BACKGROUND----#
     #draws boxes that indicate color of both mouse buttons
-    draw.rect(screen,lcol,(300,650,40,40))
-    draw.rect(screen,rcol,(340,650,40,40))
+    draw.rect(screen,lcol,(300,660,30,30))
+    draw.rect(screen,rcol,(330,660,30,30))
     #draw dropdownboxes
     fontdropdown.drawbox(screen)
     shapedropdown.drawbox(screen)
     #----DRAWING PALETTE----#
     for b in palbuttons:
         b.display(screen)
-    screen.blit(palette,(0,546))
+    screen.blit(palette,(palrect[0],palrect[1]))
     #----DRAWING GRADIENT SELECTOR----#
     gradsel.draw(screen)
     #----DRAWING BUTTONS----#
@@ -1594,9 +1655,9 @@ while running:
         b.display(screen)
     for b in shapewidthbuttons:
         b.display(screen)
-    draw.rect(screen,PINK,(80,370,20,20))
-    screen.blit(comicsans.render(str(textool.fontsize),True,BLACK),(80,370)) #displays fontsize for textbox
-    draw.rect(screen,PINK,(140,220,110,20))
+    draw.rect(screen,WHITE,(90,370,20,20))
+    screen.blit(comicsans.render(str(textool.fontsize),True,BLACK),(90,370)) #displays fontsize for textbox
+    draw.rect(screen,WHITE,(140,220,110,20))
     dispwidth = "Border size: "+str(shapetool.width) if shapetool.width > 0 else "No border (fill)"
     screen.blit(comicsans.render(dispwidth,True,BLACK),(140,220)) #displays width of shapetool for shape tool
     #----MOUSE HOLD FUNCTIONS----#
@@ -1625,70 +1686,22 @@ while running:
     elif mb[1]:
         pass
     else:
-        #following loops highlights all hovered buttons and unhighlights all non-hovered buttons
-        for t in tools:
-            if t.istouch():
-                t.highlighted = True
-            else:
-                t.highlighted = False
-        for b in fontsizebuttons:
-            if b.istouch():
-                b.highlighted = True
-            else:
-                b.highlighted = False
-        for b in shapewidthbuttons:
-            if b.istouch():
-                b.highlighted = True
-            else:
-                b.highlighted = False
-        if fontdropdown.istouch():
-            fontdropdown.highlighted = True
-        else:
-            fontdropdown.highlighted = False #sets highlighted of fontdropdown box
-        if shapedropdown.istouch():
-            shapedropdown.highlighted = True
-        else:
-            shapedropdown.highlighted = False #sets highlighted of shapedropdown box
         gradsel.mouseup(screen) #if user isn't clicking the mouse we call the gradient selector mouseup method
-        if selectool.hasmenu:
-            #if the selectool has a menu we highlight the highlighted button
-            for b in selectool.menu:
-                if b.istouch():
-                    b.highlighted = True
-                else:
-                    b.highlighted = False
+
     #----SCREEN SAVING----#  
     filler = screen.copy() #copies all updates into filler
     #----Temporary drawings that should never stick to screen (e.g. sprites and toolbits)----#
+    #DRAWS GRADIENT SELECTOR SELECTED LINE
+    gradsel.drawSel(screen)
+    #DRAWS CIRCLES OF COLOR INDICATION ON PALETTE
+    draw.circle(screen,WHITE,pspot1,10,1)
+    draw.circle(screen,BLOODRED,pspot2,10,1)
     #DRAWS TOOLBIT
     #following loop displays toolbit if the mouse is touching the button
     for t in tools:
         if t.istouch():
             t.disptoolbit(screen)
             break
-    #DRAWS TEXTBOX IF THE TEXT TOOL IS SELECTED AND A TEXTBOX IS OPEN
-    if type(currtool) == Text:
-        if currtool.hastextbox:
-            currtool.textbox.drawtext(screen,False)
-    #DRAWS SELECTED BOX IF THE SELECT TOOL IS SELECTED AND A SELECTED BOX EXISTS
-    if type(currtool) == Select:
-        if currtool.hasbox:
-            draw.rect(screen,BLACK,(currtool.x-1,currtool.y-1,currtool.width+2,currtool.height+2),1)
-            try:
-                screen.blit(transform.smoothscale(currtool.selectedbox,(currtool.width,currtool.height)),(currtool.x,currtool.y))
-            except:
-                screen.blit(transform.scale(currtool.selectedbox,(currtool.width,currtool.height)),(currtool.x,currtool.y))
-            sizepoints = [(currtool.x-1,currtool.y-1),(currtool.x+currtool.width+1,currtool.y-1),
-                          (currtool.x-1,currtool.y+currtool.height+1),(currtool.x+currtool.width+1,currtool.y+currtool.height+1),
-                          (currtool.x+(currtool.width+1)//2,currtool.y-1),(currtool.x+(currtool.width+1)//2,currtool.y+currtool.height+1),
-                          (currtool.x-1,currtool.y+(currtool.height+1)//2),(currtool.x+currtool.width+1,currtool.y+(currtool.height+1)//2)] #points in which the size of the box can be altered
-            for x,y in sizepoints:
-                draw.rect(screen,(255,50,50,150),(x-5,y-5,10,10),1)
-        #handles selected box's menu
-        if selectool.hasmenu:
-            draw.rect(screen,WHITE,selectool.menurect)
-            for b in selectool.menu:
-                b.display(screen)
     #HANDLES DROP DOWN MENUS
     if fontdropdown.menudown:
         for i in fontdropdown.items:
@@ -1706,11 +1719,29 @@ while running:
             else:
                 i.highlighted = False
         shapedropdown.dropdown(screen)
-    #DRAWS CIRCLES OF COLOR INDICATION ON PALETTE
-    draw.circle(screen,WHITE,pspot1,10,1)
-    draw.circle(screen,BLOODRED,pspot2,10,1)
-    #DRAWS GRADIENT SELECTOR SELECTED LINE
-    gradsel.drawSel(screen)
+    #DRAWS TEXTBOX IF THE TEXT TOOL IS SELECTED AND A TEXTBOX IS OPEN
+    if type(currtool) == Text:
+        if currtool.hastextbox:
+            currtool.textbox.drawtext(screen,False)
+    #DRAWS SELECTED BOX IF THE SELECT TOOL IS SELECTED AND A SELECTED BOX EXISTS
+    if type(currtool) == Select:
+        if currtool.hasbox:
+            draw.rect(screen,BLACK,(currtool.x-1,currtool.y-1,currtool.width+2,currtool.height+2),1)
+            try:
+                screen.blit(transform.smoothscale(currtool.selectedbox,(currtool.width,currtool.height)),(currtool.x,currtool.y))
+            except:
+                screen.blit(transform.scale(currtool.selectedbox,(currtool.width,currtool.height)),(currtool.x,currtool.y))
+            sizepoints = [(currtool.x-1,currtool.y-1),(currtool.x+currtool.width+1,currtool.y-1),
+                          (currtool.x-1,currtool.y+currtool.height+1),(currtool.x+currtool.width+1,currtool.y+currtool.height+1),
+                          (currtool.x+(currtool.width+1)//2,currtool.y-1),(currtool.x+(currtool.width+1)//2,currtool.y+currtool.height+1),
+                          (currtool.x-1,currtool.y+(currtool.height+1)//2),(currtool.x+currtool.width+1,currtool.y+(currtool.height+1)//2)] #points in which the size of the box can be altered
+            for x,y in sizepoints:
+                draw.rect(screen,(255,50,50,150),(x-5,y-5,10,10),2)
+                draw.rect(screen,WHITE,(x-4,y-4,8,8))
+        #handles selected box's menu
+        if selectool.hasmenu:
+            for b in selectool.menu:
+                b.display(screen)
     #DRAWS MOUSE SPRITE
     if canvas.collidepoint(mx,my) and (not selectool.hasmenu or not selectool.menurect.collidepoint(mx,my)):
         #if the mouse is above the canvas and not above a menu, we draw a sprite
