@@ -2,7 +2,7 @@ from pygame import *
 from random import *
 from math import *
 from tkinter import *
-from time import sleep
+from time import *
 font.init()
 #----METADATA----#
 __author__ = "Yttrium Z (You Zhou)"
@@ -27,11 +27,10 @@ display.flip()
 #MUSIC (Really lags up the program startup)
 init()
 mixer.init()
-music = [mixer.Sound("music/MiraiNikkiOP.ogg")]
-''',
+music = [mixer.Sound("music/My_Dearest.ogg")]
+'''mixer.Sound("music/MiraiNikkiOP.ogg"),
 mixer.Sound("music/InnocentBlue.ogg"),
 mixer.Sound("music/Lillium.ogg"),
-mixer.Sound("music/My_Dearest.ogg"),
 mixer.Sound("music/NeverSayNever.ogg"),
 mixer.Sound("music/BoukenDesho.ogg")
 '''
@@ -174,12 +173,13 @@ class Textbox():
         #draws text to screen
         if not perm:
             #if it isn't permanent drawing
+            #draws a box to fit the text of the text box drawn by the text tool
             draw.rect(screen,self.col,(self.x-2,self.y-2,self.width+4,self.height+4),2)
-            #^draws a box to fit the text of the text box drawn by the text tool
-            draw.line(screen,self.col,
-                      (self.x+self.tbfont.render(self.text[self.irow][:self.icol],True,BLACK).get_width(),self.y+self.tbfont.render(self.text[-1],True,BLACK).get_height()*self.irow),
-                      (self.x+self.tbfont.render(self.text[self.irow][:self.icol],True,BLACK).get_width(),self.y+self.tbfont.render(self.text[-1],True,BLACK).get_height()*self.irow+self.tbfont.render(self.text[self.irow][:self.icol],True,BLACK).get_height()))
-            #^draws insertion point
+            #draws insertion point if time is at the right interval (mimics flashing effect)
+            if time() % 0.9 < 0.45:
+                draw.line(screen,self.col,
+                          (self.x+self.tbfont.render(self.text[self.irow][:self.icol],True,BLACK).get_width(),self.y+self.tbfont.render(self.text[-1],True,BLACK).get_height()*self.irow),
+                          (self.x+self.tbfont.render(self.text[self.irow][:self.icol],True,BLACK).get_width(),self.y+self.tbfont.render(self.text[-1],True,BLACK).get_height()*self.irow+self.tbfont.render(self.text[self.irow][:self.icol],True,BLACK).get_height()))
         else:
             screen.set_clip(canvas)
         for i in range(self.lines):
@@ -677,9 +677,9 @@ class Text(Tool):
                 elif 1 in kp:
                     self.textbox.writeto(keypressed) #writes keypressed to texbox
     def outside(self):
-        #turns off text box if user clicks outside canvas
+        #turns off text box if user clicks outside canvas and if user didn't click font change
         global screen
-        if self.hastextbox:
+        if self.hastextbox and lastclick not in ["fontdropdown","fontsize"]:
             self.hastextbox = False
             currtool.textbox.drawtext(screen)
     def drawsprite(self,screen):
@@ -1183,10 +1183,13 @@ class Button():
             #tool change button
             currtool = self.func
         elif self.func == "font":
-            #font change button
+            #font family change button
             currtool = textool
             textool.fontfamily = self.arg2
             textool.textbox.changefont(self.arg2,textool.textbox.fontsize) #changes fontfamily
+            #changes dimensions to match new font family
+            textool.textbox.width = max([textool.textbox.tbfont.render(textool.textbox.text[i],True,BLACK).get_width() for i in range(textool.textbox.lines)]) #sets width to be maximum of the lines
+            textool.textbox.height = textool.textbox.tbfont.render(textool.textbox.text[-1],True,BLACK).get_height()*textool.textbox.lines #sets height
         elif self.func == "fontsize":
             #fontsize change button
             currtool = textool
@@ -1195,6 +1198,9 @@ class Button():
             newfontsize = max(5,newfontsize) #limits new font size
             textool.fontsize = newfontsize
             textool.textbox.changefont(textool.textbox.fontfamily,newfontsize) #changes fontsize
+            #changes dimensions to match new fontsize
+            textool.textbox.width = max([textool.textbox.tbfont.render(textool.textbox.text[i],True,BLACK).get_width() for i in range(textool.textbox.lines)]) #sets width to be maximum of the lines
+            textool.textbox.height = textool.textbox.tbfont.render(textool.textbox.text[-1],True,BLACK).get_height()*textool.textbox.lines #sets height
         elif self.func == "shape":
             #shape change button
             currtool = shapetool
@@ -1399,8 +1405,10 @@ header2 = titlefont.render("SPLATTERBOARD",True,BLOODRED) #header word 2 "SPLATT
 screen.blit(header,(580,0))
 screen.blit(header2,(710,0))
 comicsans.set_italic(True) #italicizes subtitle
-draw.rect(screen,BLACK,(605,30,215,20))
-draw.rect(screen,WHITE,(605,30,213,18)) #background for subtitle
+draw.rect(screen,BLACK,(604,30,215,20),1)
+subtitlebox = Surface((213,18),SRCALPHA)
+draw.rect(subtitlebox,(255,255,255,200),(0,0,213,18)) #background for subtitle
+screen.blit(subtitlebox,(605,30))
 subtitle = comicsans.render("Great art takes Deadication",True,BLACK) #subtitle
 comicsans.set_italic(False)
 screen.blit(subtitle,(610,29))
@@ -1416,25 +1424,36 @@ ystamptitle = comicsans.render("STAMPS OF DEADICATION",True,BLOODRED) #Title of 
 screen.blit(ystamptitle,(600,660))
 comicsans.set_bold(False)
 #----COLOR PALETTE----#
-draw.rect(screen,DARK_GREY,(25,476,180,80)) #drawing background for palette buttons
+draw.rect(screen,BLACK,(19,475,187,82),1) #drawing background for palette buttons
+draw.rect(screen,DARK_GREY,(20,476,185,80))
 screen.blit(comicsans.render("COLOUR PALETTE",True,WHITE),(50,486)) #blitting title of color palette
-draw.rect(screen,BLACK,(24,555,252,182)) #draws border for palette
-palette = transform.scale(image.load("images/spectrum_chart.jpg"),(250,180)) #palette
-palrect = Rect(25,556,250,180) #palette rect
-pspot1 = (25,736) #spot of left mouse color on the palette
-pspot2 = (25,667) #spot of right mouse color on the palette
+draw.rect(screen,BLACK,(19,545,262,186)) #draws border for palette
+palette = transform.scale(image.load("images/spectrum_chart.jpg"),(260,184)) #palette
+palrect = Rect(20,546,260,184) #palette rect
+pspot1 = (25,730) #spot of left mouse color on the palette
+pspot2 = (25,659) #spot of right mouse color on the palette
 palbuttons = [Button("color",Rect(50,506,20,20),50,506,"",20,20,BLACK),
               Button("color",Rect(70,506,20,20),70,506,"",20,20,WHITE),
               Button("color",Rect(90,506,20,20),90,506,"",20,20,RED),
               Button("color",Rect(110,506,20,20),110,506,"",20,20,GREEN),
               Button("color",Rect(130,506,20,20),130,506,"",20,20,BLUE),
               Button("color",Rect(150,506,20,20),150,506,"",20,20,PINK)]#buttons for more specific colors
-draw.rect(screen,BLACK,(299,699,277,39))#border for gradient selector
-gradsel = GradSel(300,700,275,36)#gradient selector
+draw.rect(screen,BLACK,(299,691,277,39))#border for gradient selector
+gradsel = GradSel(300,692,275,36)#gradient selector
+#----MOUSE COLOR BUTTONS----#
+lcolbutton = Button("color",Rect(300,656,30,30),300,656,"",30,30,lcol) #left mouse color button
+rcolbutton = Button("color",Rect(332,656,30,30),332,656,"",30,30,rcol) #right mouse color buttons
+rcolbutton.selected = True #not really selected, but this allows for the right mouse color button to have a red border
+#----BOTTOM STRIP OF INFO----#
+bottomstrip = Surface((556,20),SRCALPHA)
+bottomstrip.fill((150,150,150,200))
+#----KEY VARIABLES----#
+keytimer = 0 #timer for key pressed - allows for key holding
+keypressed = "" #key pressed by user
 #----other important variables----#
 lastclick = "" #keeps track of last click
 filler = screen.copy() #screen filler - used for mouse sprites and toolbits and other temporary pop-ups
-toolboxfiller = screen.subsurface(Rect(20,100,300,500)).copy() #tool box
+toolboxfiller = screen.subsurface(Rect(20,100,270,500)).copy() #tool box
 mem = [] #memory for previous saves for the undo function
 mem2 = [] #memory for saves removed by the undo function for the redo function
 boxcp = None #clipboard for boxes (created by the select tool)
@@ -1501,6 +1520,18 @@ while running:
             else:
                 #if user doesn't click palette or canvas
                 lastclick = "" #set last click to "" (which means everything except canvas, drop down boxes and palette)
+                if currtool == textool:
+                    for b in fontsizebuttons:
+                        if b.istouch():
+                            b.clickon(screen)
+                            lastclick = "fontsize"
+                            break
+                if currtool == shapetool:
+                    for b in shapewidthbuttons:
+                        if b.istouch():
+                            b.clickon(screen)
+                            lastclick = "bordersize"
+                            break
                 screen.set_clip(canvas)
                 currtool.outside() #runs current tool's outside function, as user clicked outside of canvas
                 screen.set_clip(None)
@@ -1512,16 +1543,10 @@ while running:
                     if b.istouch():
                         b.clickon(screen)
                         break
-                if currtool == textool:
-                    for b in fontsizebuttons:
-                        if b.istouch():
-                            b.clickon(screen)
-                            break
-                if currtool == shapetool:
-                    for b in shapewidthbuttons:
-                        if b.istouch():
-                            b.clickon(screen)
-                            break
+                for b in [lcolbutton,rcolbutton]:
+                    if b.istouch():
+                        b.clickon(screen)
+                        break
                 for t in tools:
                     if t.istouch():
                         if t.func != currtool:
@@ -1545,6 +1570,8 @@ while running:
         if e.type == KEYDOWN:
             #----KEY PRESS FUNCTIONS----#
             kp = key.get_pressed()
+            keypressed = e.unicode #pressed key
+            keytimer = time() #time pressed by user
             canundo = True #can the user undo under the circumstances (applies to redo as well)
             if type(currtool) == Text:
                 if currtool.hastextbox:
@@ -1646,18 +1673,24 @@ while running:
                     screen.set_clip(None)
             else:
                 currtool.keypress(screen,e.unicode)#uses current tool's keypress method
+        if e.type == KEYUP:
+            keypressed = ""
+            keytimer = 0
             
     #----BACKGROUND----#
+    mx,my = mouse.get_pos() #mouse position
     #----MOUSE COLOR BOXES----#
     #draws boxes that indicate color of both mouse buttons
-    draw.rect(screen,lcol,(300,660,30,30))
-    draw.rect(screen,rcol,(330,660,30,30))
+    lcolbutton.arg2 = lcol
+    rcolbutton.arg2 = rcol
+    lcolbutton.display(screen)
+    rcolbutton.display(screen)
     #----DROP DOWN BOXES----#
     #draw dropdownboxes if the respective tool is selected
     if currtool == textool:
         fontdropdown.drawbox(screen)
     if currtool == shapetool:
-        shapedropdown.drawbox(screen)        
+        shapedropdown.drawbox(screen)
     #----DRAWING PALETTE----#
     for b in palbuttons:
         b.display(screen)
@@ -1708,7 +1741,12 @@ while running:
         pass
     else:
         gradsel.mouseup(screen) #if user isn't clicking the mouse we call the gradient selector mouseup method
-
+    #----KEY HOLD HANDLING----#
+    if keytimer != 0:
+        if time() - keytimer > 0.5:
+            #if user held the key for more than 0.5 seconds, it calls the keypress function
+            currtool.keypress(screen,keypressed)
+            sleep(0.01) #delays the time a little bit when holding the key
     #----SCREEN SAVING----#  
     filler = screen.copy() #copies all updates into filler
     #----Temporary drawings that should never stick to screen (e.g. sprites and toolbits)----#
@@ -1764,8 +1802,15 @@ while running:
         #handles selected box's menu
         if selectool.hasmenu:
             for b in selectool.menu:
-                b.display(screen)
+                b.display(screen)        
     screen.set_clip(None)
+    #----DRAWING BOTTOM STRIP BELOW THE PALETTE----#
+    screen.blit(bottomstrip,(20,730))
+    if canvas.collidepoint(mx,my):
+        coords = "X: "+str(mx-300)+" Y: "+str(my-50)
+    else:
+        coords = "Off Canvas"
+    screen.blit(lucidaconsole.render(coords+" L-Col: "+str(lcol[:3])+" R-Col: "+str(rcol[:3]),True,BLACK),(21,733))
     #DRAWS MOUSE SPRITE
     if canvas.collidepoint(mx,my) and (not selectool.hasmenu or not selectool.menurect.collidepoint(mx,my)):
         #if the mouse is above the canvas and not above a menu, we draw a sprite
