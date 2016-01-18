@@ -122,9 +122,11 @@ class Textbox():
         self.lines = 1 #number of lines textbox has
         self.irow = 0 #position of insertion point row and column
         self.icol = 0
-    def changefont(self,fontfamily,fontsize):
-        self.fontfamily = fontfamily
-        self.fontsize = fontsize
+    def changefont(self,fontfamily,fontsize,col=None):
+        if col != None:
+            self.col = col #sets color
+        self.fontfamily = fontfamily #sets fontfamily
+        self.fontsize = fontsize #sets fontsize
         self.tbfont = font.SysFont(fontfamily,self.fontsize)
     def writeto(self,char):
         #writes a character in the box
@@ -155,9 +157,10 @@ class Textbox():
             del self.text[self.irow]
             self.lines -= 1
             self.irow -= 1 #moves the row one up
-        else:
+        elif self.irow != 0 or self.icol != 0:
             self.text[self.irow] = self.text[self.irow][:self.icol-1] + self.text[self.irow][self.icol:]
             self.icol -= 1
+        self.icol = max(0,self.icol) #limits insertion point column at 0
         self.width = max([self.tbfont.render(self.text[i],True,BLACK).get_width() for i in range(self.lines)]) #sets width to be maximum of the lines
         self.height = self.tbfont.render(self.text[-1],True,BLACK).get_height()*self.lines #sets height
     def newline(self):
@@ -185,6 +188,9 @@ class Textbox():
         for i in range(self.lines):
             screen.blit(self.tbfont.render(self.text[i],True,self.col),(self.x,self.y+(self.height//self.lines)*i))#blits font to screen
         screen.set_clip(None)
+    def get_rect(self):
+        #returns rect
+        return Rect(self.x,self.y,self.width,self.height)
 #-----------------------------DROPDOWNBOX
 class DropDownBox():
     #drop down box
@@ -592,13 +598,20 @@ class Text(Tool):
         self.fontsize = fontsize #sets font
         self.textbox = Textbox(0,0,0,0,fontfamily,fontsize,(0,0,0))
         self.hastextbox = False #has this tool drawn a textbox already?
+        self.dx = 0 #distance of mouse from corner of textbox - used for moving textbox on click
+        self.dy = 0
     def lclick(self,screen):
         global lcol
         mx,my = mouse.get_pos()
         if self.hastextbox:
-            #turns off text box if we have one
-            self.hastextbox = False
-            currtool.textbox.drawtext(screen)
+            if self.textbox.get_rect().collidepoint(mx,my-5) or self.textbox.get_rect().collidepoint(mx,my+20):
+                #sets dx and dy and let's continue move the textbox
+                self.dx,self.dy = mx-self.textbox.x,my-self.textbox.y
+            else:
+                #turns off text box if we have one and user did not click textbox
+                self.hastextbox = False
+                currtool.textbox.drawtext(screen)
+                self.dx,self.dy = 0,0
         else:
             #draws a text box if we don't have one
             self.textbox = Textbox(mx,my,20,20,self.fontfamily,self.fontsize,lcol)
@@ -608,13 +621,24 @@ class Text(Tool):
         global rcol
         mx,my = mouse.get_pos()
         if self.hastextbox:
-            #turns off text box if we have one
-            self.hastextbox = False
-            currtool.textbox.drawtext(screen)
+            if self.textbox.get_rect().collidepoint(mx,my-5) or self.textbox.get_rect().collidepoint(mx,my+20):
+                #sets dx and dy and let's continue move the textbox
+                self.dx,self.dy = mx-self.textbox.x,my-self.textbox.y
+            else:
+                #turns off text box if we have one and user did not click textbox
+                self.hastextbox = False
+                currtool.textbox.drawtext(screen)
+                self.dx,self.dy = 0,0
         else:
             #draws a text box if we don't have one
             self.textbox = Textbox(mx,my,20,20,self.fontfamily,self.fontsize,rcol)
             self.hastextbox = True
+    def cont(self,screen):
+        #drags the textbox if the mouse is down on canvas
+        mb = mouse.get_pressed()
+        if mb[0] or mb[2]:
+            self.textbox.x = mx-self.dx
+            self.textbox.y = my-self.dy
     def scroll(self,screen,forward=True):
         if forward:
             #makes text smaller
@@ -677,11 +701,26 @@ class Text(Tool):
                 elif 1 in kp:
                     self.textbox.writeto(keypressed) #writes keypressed to texbox
     def outside(self):
-        #turns off text box if user clicks outside canvas and if user didn't click font change
+        #turns off text box if user clicks outside canvas and if user didn't click font change or color change
         global screen
-        if self.hastextbox and lastclick not in ["fontdropdown","fontsize"]:
+        global lcol
+        global rcol
+        if self.hastextbox and lastclick not in ["fontdropdown","fontsize","palbutton","palette","mousebutton","canvas"]:
             self.hastextbox = False
             currtool.textbox.drawtext(screen)
+        else:
+            #changes dimensions
+            mb = mouse.get_pressed()
+            if lastclick in ["palbutton","palette","mousebutton"]:
+                if mb[0]:
+                    col = lcol
+                else:
+                    col = rcol
+            else:
+                col = None
+            self.textbox.changefont(self.fontfamily,self.fontsize,col)
+            self.textbox.width = max([self.textbox.tbfont.render(self.textbox.text[i],True,BLACK).get_width() for i in range(self.textbox.lines)]) #sets width to be maximum of the lines
+            self.textbox.height = self.textbox.tbfont.render(self.textbox.text[-1],True,BLACK).get_height()*self.textbox.lines #sets height
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()     
         screen.blit(self.icon,(mx-20,my-10))
@@ -855,6 +894,7 @@ class Select(Tool):
                 self.selectedbox = transform.scale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
             screen.blit(cfiller,(300,50))
             self.hasbox = False
+            print(self.x,self.y)
             screen.blit(self.selectedbox,(self.x,self.y))
         elif self.hasbox:
             #if the last click was the canvas, we ignore it
@@ -1187,9 +1227,7 @@ class Button():
             currtool = textool
             textool.fontfamily = self.arg2
             textool.textbox.changefont(self.arg2,textool.textbox.fontsize) #changes fontfamily
-            #changes dimensions to match new font family
-            textool.textbox.width = max([textool.textbox.tbfont.render(textool.textbox.text[i],True,BLACK).get_width() for i in range(textool.textbox.lines)]) #sets width to be maximum of the lines
-            textool.textbox.height = textool.textbox.tbfont.render(textool.textbox.text[-1],True,BLACK).get_height()*textool.textbox.lines #sets height
+
         elif self.func == "fontsize":
             #fontsize change button
             currtool = textool
@@ -1198,9 +1236,7 @@ class Button():
             newfontsize = max(5,newfontsize) #limits new font size
             textool.fontsize = newfontsize
             textool.textbox.changefont(textool.textbox.fontfamily,newfontsize) #changes fontsize
-            #changes dimensions to match new fontsize
-            textool.textbox.width = max([textool.textbox.tbfont.render(textool.textbox.text[i],True,BLACK).get_width() for i in range(textool.textbox.lines)]) #sets width to be maximum of the lines
-            textool.textbox.height = textool.textbox.tbfont.render(textool.textbox.text[-1],True,BLACK).get_height()*textool.textbox.lines #sets height
+
         elif self.func == "shape":
             #shape change button
             currtool = shapetool
@@ -1519,7 +1555,11 @@ while running:
                 lastclick = "palette"
             else:
                 #if user doesn't click palette or canvas
+                if e.button in [2,4,5]:
+                    #makes sure nothing happens if the use uses middle click
+                    continue
                 lastclick = "" #set last click to "" (which means everything except canvas, drop down boxes and palette)
+                #following loop checks for tools/buttons and if we clicked them or not
                 if currtool == textool:
                     for b in fontsizebuttons:
                         if b.istouch():
@@ -1532,21 +1572,20 @@ while running:
                             b.clickon(screen)
                             lastclick = "bordersize"
                             break
-                screen.set_clip(canvas)
-                currtool.outside() #runs current tool's outside function, as user clicked outside of canvas
-                screen.set_clip(None)
-                if e.button in [2,4,5]:
-                    #makes sure nothing happens if the use uses middle click
-                    continue
-                #following loop checks for tools/buttons and if we clicked them or not
                 for b in palbuttons:
                     if b.istouch():
+                        lastclick = "palbutton"
                         b.clickon(screen)
                         break
                 for b in [lcolbutton,rcolbutton]:
                     if b.istouch():
+                        lastclick = "mousebutton"
                         b.clickon(screen)
                         break
+                screen.set_clip(canvas)
+                currtool.outside() #runs current tool's outside function, as user clicked outside of canvas
+                screen.set_clip(None)
+                #checks if user clicked a tool button (do not want to call this before currtool.outside() since this changes currtool)
                 for t in tools:
                     if t.istouch():
                         if t.func != currtool:
@@ -1746,7 +1785,7 @@ while running:
         if time() - keytimer > 0.5:
             #if user held the key for more than 0.5 seconds, it calls the keypress function
             currtool.keypress(screen,keypressed)
-            sleep(0.01) #delays the time a little bit when holding the key
+            sleep(0.015) #delays the time a little bit when holding the key
     #----SCREEN SAVING----#  
     filler = screen.copy() #copies all updates into filler
     #----Temporary drawings that should never stick to screen (e.g. sprites and toolbits)----#
