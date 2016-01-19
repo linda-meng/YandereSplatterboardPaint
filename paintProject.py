@@ -71,6 +71,7 @@ dropper = transform.scale(image.load("images/dropper.png"),(40,40))
 fancyA = transform.scale(image.load("images/A.png"),(40,40))
 roundedrect = transform.scale(image.load("images/roundrect.png"),(40,40))
 ellipsesprite = transform.scale(image.load("images/ellipse.png"),(40,40))
+polygonsprite = transform.scale(image.load("images/polygon.png"),(40,40))
 dottedbox = transform.scale(image.load("images/dottedbox.gif"),(40,40))
 fillbucket = image.load("images/fillbucket.png")
 spraycan = transform.scale(image.load("images/spraypaint.png"),(40,40))
@@ -275,7 +276,6 @@ class GradSel():
             rcol = screen.get_at((self.x+self.selected,self.y)) #right click sets right mouse button
         else:
             lcol = screen.get_at((self.x+self.selected,self.y)) #left click sets left mouse button
-
     def mouseup(self,screen):
         self.clicked = -1
         self.selected = self.width//2
@@ -414,18 +414,23 @@ class Eraser(Tool):
                 self.size += 1
         else:
             #makes eraser smaller
-            if self.size > 1:
+            if self.size > 0:
                 #makes sure eraser size doesn't go below 1
                 self.size -= 1
     def cont(self,screen):
         #erases in a line that follows user's mouse - same idea as pencil but uses a line of circles instead of an actual line
         mx,my = mouse.get_pos()
-        dist = ((mx-self.sx)**2+(my-self.sy)**2)**0.5 #distance
-        dist = max(1,dist) #makes sure dist != 0 so divison by 0 doesn't happen
-        lx = (mx-self.sx)/dist #increment of x and y values of the line
-        ly = (my-self.sy)/dist
-        for i in range(int(dist)):
-            draw.circle(screen,WHITE,(int(self.sx+lx*i),int(self.sy+ly*i)),self.size)
+        if self.size > 0:
+            #line algorithm
+            dist = ((mx-self.sx)**2+(my-self.sy)**2)**0.5 #distance
+            dist = max(1,dist) #makes sure distance isn't 0 so division by 0 doesn't occur
+            lx = (mx-self.sx)/dist #increment of x and y values of the line
+            ly = (my-self.sy)/dist
+            for i in range(int(dist)):
+                draw.circle(screen,WHITE,(int(self.sx+lx*i),int(self.sy+ly*i)),self.size)
+        else:
+            #draws a simple line
+            draw.line(screen,WHITE,(self.sx,self.sy),(mx,my))
         self.sx = mx
         self.sy = my
     def outside(self):
@@ -435,7 +440,10 @@ class Eraser(Tool):
             self.cont(screen)
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
-        draw.circle(screen,WHITE,(mx,my),self.size) #draws circle to show user how big eraser is
+        if self.size > 0:
+            draw.circle(screen,WHITE,(mx,my),self.size) #draws circle to show user how big eraser is
+        else:
+            screen.set_at((mx,my),WHITE)
         super(Eraser,self).drawsprite(screen) #Calls on Tool class's default toolbit, as that fits the bill for the Eraser tool
     def keypress(self,screen,keypressed=""):
         if keypressed == " ":
@@ -470,7 +478,7 @@ class Brush(Tool):
                 self.size += 1
         else:
             #makes brush smaller
-            if self.size > 1:
+            if self.size > 0:
                 #makes sure brush size doesn't go below 1
                 self.size -= 1
     def cont(self,screen):
@@ -484,12 +492,17 @@ class Brush(Tool):
             global rcol
             self.col = rcol
         mx,my = mouse.get_pos()
-        dist = ((mx-self.sx)**2+(my-self.sy)**2)**0.5 #distance
-        dist = max(1,dist) #makes sure distance isn't 0 so division by 0 doesn't occur
-        lx = (mx-self.sx)/dist #increment of x and y values of the line
-        ly = (my-self.sy)/dist
-        for i in range(int(dist)):
-            draw.circle(screen,self.col,(int(self.sx+lx*i),int(self.sy+ly*i)),self.size)
+        if self.size > 0:
+            #line algorithm
+            dist = ((mx-self.sx)**2+(my-self.sy)**2)**0.5 #distance
+            dist = max(1,dist) #makes sure distance isn't 0 so division by 0 doesn't occur
+            lx = (mx-self.sx)/dist #increment of x and y values of the line
+            ly = (my-self.sy)/dist
+            for i in range(int(dist)):
+                draw.circle(screen,self.col,(int(self.sx+lx*i),int(self.sy+ly*i)),self.size)
+        else:
+            #draws a simple line
+            draw.line(screen,self.col,(self.sx,self.sy),(mx,my))
         self.sx = mx
         self.sy = my
     def outside(self):
@@ -506,7 +519,10 @@ class Brush(Tool):
             self.col = rcol
         else:
             self.col = lcol
-        draw.circle(screen,self.col,(mx,my),self.size) #draws circle to show user how big brush is
+        if self.size > 0:
+            draw.circle(screen,self.col,(mx,my),self.size) #draws circle to show user how big brush is
+        else:
+            screen.set_at((mx,my),self.col)
         screen.blit(self.icon,(mx,my-40))
     def keypress(self,screen,keypressed=""):
         if keypressed == " ":
@@ -540,16 +556,21 @@ class Line(Tool):
         #same algorithm as brush tool
         screen.blit(cfiller,(300,50))
         mx,my = mouse.get_pos()
-        dist = ((mx-self.sx)**2+(my-self.sy)**2)**0.5 #distance
-        dist = max(1,dist) #makes sure distance isn't 0 so division by 0 doesn't occur
-        lx = (mx-self.sx)/dist #increment of x and y values of the line
-        ly = (my-self.sy)/dist
-        for i in range(int(dist)):
-            draw.circle(screen,self.col,(int(self.sx+lx*i),int(self.sy+ly*i)),self.size)
+        if self.size > 1:
+            #line algorithm
+            dist = ((mx-self.sx)**2+(my-self.sy)**2)**0.5 #distance
+            dist = max(1,dist) #makes sure distance isn't 0 so division by 0 doesn't occur
+            lx = (mx-self.sx)/dist #increment of x and y values of the line
+            ly = (my-self.sy)/dist
+            for i in range(int(dist)):
+                draw.circle(screen,self.col,(int(self.sx+lx*i),int(self.sy+ly*i)),self.size//2)
+        else:
+            #draws a simple line
+            draw.line(screen,self.col,(self.sx,self.sy),(mx,my))
     def scroll(self,screen,forward=True):
         if forward:
             #makes line size smaller and limits it at 1
-            if self.size > 1:
+            if self.size > 0:
                 self.size -= 1
         else:
             #makes size larger and limits it at 512
@@ -565,10 +586,16 @@ class Line(Tool):
         global rcol
         mb = mouse.get_pressed()
         mx,my = mouse.get_pos()
-        if mb[2]:
-            draw.circle(screen,self.col,(mx,my),self.size)
+        if self.size > 0:
+            if mb[2]:
+                draw.circle(screen,self.col,(mx,my),self.size)
+            else:
+                draw.circle(screen,lcol,(mx,my),self.size)
         else:
-            draw.circle(screen,lcol,(mx,my),self.size)
+            if mb[2]:
+                screen.set_at((mx,my),self.col)
+            else:
+                screen.set_at((mx,my),lcol)
         screen.blit(self.icon,(mx,my-40))
     def keypress(self,screen,keypressed=""):
         if keypressed == " ":
@@ -984,18 +1011,60 @@ class Shape(Tool):
         self.col = lcol #color of shape - default is left mouse color
         self.width = 0 #width of shape - default is 0
         self.sx,self.sy = 0,0 #starting co-ords of shape, starts at 0,0 (doesn't rly matter since we change it on click)
+        self.points = [] #points of polygon (for polygon option)
     def lclick(self,screen):
         global cfiller
         global canvas
         global lcol
+        global rcol
         mx,my = mouse.get_pos()
+        #----Polygon----#
+        if self.shape == "polygon":
+            if len(self.points) == 0:
+                cfiller = screen.copy().subsurface(canvas) #sets cfiller to be canvas before click
+                self.col = rcol if mouse.get_pressed()[2] else lcol #sets color if there are no current points (first press)
+            self.points.append((mx,my)) #adds point to points
+            if self.width > 1:
+                draw.circle(screen,self.col,(mx,my),self.width//2) #draws a circle of the same width as the border
+            screen.set_at((mx,my),self.col) #sets point to color currently at
+            if len(self.points) > 1:
+                #line algorithm if the width is greater than 1
+                if self.width > 1:
+                    x1,y1 = self.points[-2]
+                    x2,y2 = self.points[-1]
+                    dist = max(1,hypot(x2-x1,y2-y1))#distance between points
+                    lx = (x2-x1)/dist #little x to increment circles by
+                    ly = (y2-y1)/dist #little y to increment circles by
+                    for i in range(int(dist)):
+                        draw.circle(screen,self.col,(int(x1+lx*i),int(y1+ly*i)),self.width//2)
+                else:
+                    #simply draws a line if width is less than 2
+                    draw.line(screen,self.col,self.points[-2],self.points[-1])
+            return 0 #returns so that it does not run preceding code
+        #----Other shapes----#
         cfiller = screen.copy().subsurface(canvas) #sets cfiller to be canvas before click
         self.sx,self.sy = mx,my #sets starting co-ords to mouse pos
         self.col = lcol #sets color to left click color
     def rclick(self,screen):
+        #----Polygon----#
+        if self.shape == "polygon":
+            if len(self.points) == 0:
+                self.lclick(screen) #calls left click method
+                return 0 #stops the function if there's nothing in points
+            if len(self.points) <= 2:
+                self.points = [] #resets points if length of points is <=2 as we cannot make a polygon from 2 or less points
+                return 0
+            if self.width == 0:
+                draw.polygon(screen,self.col,self.points,self.width) #draws the polygon
+            else:
+                draw.line(screen,self.col,self.points[-1],self.points[0],self.width) #completes the polygon if it's bordered and not filled
+            self.points = [] #clears points
+            return 0
+        #----Other shapes----#
         self.lclick(screen) #identical to lclick
         self.col = rcol #sets color to rclick color
     def scroll(self,screen,forward=True):
+        global canvas
         if forward:
             #makes shape border smaller
             self.width -= 1
@@ -1004,8 +1073,32 @@ class Shape(Tool):
             #makes shape border bigger
             self.width += 1
             self.width = min(99,self.width) #makes sure width does not exceed 99
+        if self.shape == "polygon" and len(self.points) > 0:
+            screen.blit(cfiller,(canvas[0],canvas[1]))
+            #if length of points is greater than 0 and we have a polygon shape active, we draw all the points again with the new size
+            if len(self.points) == 1:
+                #if there is only one point we just draw a new circle/dot on the point
+                if self.width < 2:
+                    screen.set_at(self.points[0],self.col)
+                else:
+                    draw.circle(screen,self.col,self.points[0],self.width//2)
+            else:
+                for i in range(1,len(self.points)):
+                    #line algorithm if the width is greater than 1
+                    if self.width > 1:
+                        x1,y1 = self.points[i-1]
+                        x2,y2 = self.points[i]
+                        dist = max(1,hypot(x2-x1,y2-y1))#distance between points
+                        lx = (x2-x1)/dist #little x to increment circles by
+                        ly = (y2-y1)/dist #little y to increment circles by
+                        for i in range(int(dist)):
+                            draw.circle(screen,self.col,(int(x1+lx*i),int(y1+ly*i)),self.width//2)
+                    else:
+                        draw.line(screen,self.col,self.points[i-1],self.points[i])
     def cont(self,screen):
         global cfiller
+        if self.shape == "polygon":
+            return 0 #does nothing if shape is a polygon
         mx,my = mouse.get_pos()
         screen.blit(cfiller,(300,50))
         if self.shape == "rect":
@@ -1028,6 +1121,13 @@ class Shape(Tool):
                 #if the width and height of the centre ellipse is greater than 0 and the ellipse has a border, draws transparent ellipse in the centre to simulate an ellipse with a border
                 draw.ellipse(ellipseSurface,(255,255,255,0),(self.width,self.width,abs(self.sx-mx)-self.width*2,abs(self.sy-my)-self.width*2))
             screen.blit(ellipseSurface,(sx,sy)) #blits the ellipse surface
+    def keypress(self,screen,keypressed=""):
+        if keypressed == " ":
+            self.width = 0 #resets width when space is clicked
+    def outside(self):
+        if self.shape == "polygon" and len(self.points) > 0:
+            self.points = [] #deletes points in polygon
+
 #-------------------------------------------Fill Tool
 class Fill(Tool):
     #fills an area with a colour
@@ -1227,7 +1327,6 @@ class Button():
             currtool = textool
             textool.fontfamily = self.arg2
             textool.textbox.changefont(self.arg2,textool.textbox.fontsize) #changes fontfamily
-
         elif self.func == "fontsize":
             #fontsize change button
             currtool = textool
@@ -1236,7 +1335,6 @@ class Button():
             newfontsize = max(5,newfontsize) #limits new font size
             textool.fontsize = newfontsize
             textool.textbox.changefont(textool.textbox.fontfamily,newfontsize) #changes fontsize
-
         elif self.func == "shape":
             #shape change button
             currtool = shapetool
@@ -1247,6 +1345,10 @@ class Button():
             elif self.arg2 == "rect":
                 tools[8].pic = roundedrect
                 shapetool.icon = roundedrect
+            elif self.arg2 == "polygon":
+                tools[8].pic = polygonsprite 
+                shapetool.icon = polygonsprite
+            tools[8].toolbit = "Shape tool ("+str(self.arg2.title())+"): "+str(self.toolbit)
         elif self.func == "shapewidth":
             #shape width change
             currtool = shapetool
@@ -1357,6 +1459,13 @@ class Button():
             draw.rect(screen,BLACK,(mx,my-40,width,40))
             screen.blit(comicsans.render(self.toolbit,True,BLOODRED),(mx+5,my-35))
             screen.blit(smallfont.render("[Scroll to change size, space to reset size]",True,BLOODRED),(mx+5,my-17))
+        elif self.func == shapetool:
+            #if it's a shapetool we add extra text
+            smallfont = font.SysFont("comicsansms",10) #small font
+            width = max(width,smallfont.render("[Scroll to change size, space to reset size]",True,BLOODRED).get_width()+20)
+            draw.rect(screen,BLACK,(mx,my-40,width,40))
+            screen.blit(comicsans.render(self.toolbit,True,BLOODRED),(mx+5,my-35))
+            screen.blit(smallfont.render("[Scroll to change border-size, space to reset to fill mode]",True,BLOODRED),(mx+5,my-17))
         else:
             draw.rect(screen,BLACK,(mx,my-30,width,30))
             screen.blit(comicsans.render(self.toolbit,True,BLOODRED),(mx+5,my-25))
@@ -1391,8 +1500,9 @@ fontdropdown = DropDownBox(60,350,[Button("font",comicsans.render("Comic Sans MS
                                    Button("font",impact.render("Impact",True,BLACK),60,450,"Change Font-Family",136,20,"impact"),
                                    Button("font",vladimirscript.render("Vladimir Script",True,BLACK),60,470,"Change Font-Family",136,20,"vladimirscript")],"SELECT FONT")
 #drop down boxes for shapes
-shapedropdown = DropDownBox(120,200,[Button("shape",comicsans.render("Rectangle",True,BLACK),120,220,"Change Shape",140,20,"rect"),
-                                     Button("shape",comicsans.render("Ellipse",True,BLACK),120,240,"Change Shape",140,20,"ellipse")],"CHANGE SHAPE")
+shapedropdown = DropDownBox(120,200,[Button("shape",comicsans.render("Rectangle",True,BLACK),120,220,"Draw a rectangle by clicking and dragging",140,20,"rect"),
+                                     Button("shape",comicsans.render("Ellipse",True,BLACK),120,240,"Draw an ellipse by clicking and dragging",140,20,"ellipse"),
+                                     Button("shape",comicsans.render("Polygon",True,BLACK),120,260,"Left-click or right-click to start setting points; left-click to continue setting points; right click to finish polygon",140,20,"polygon")],"CHANGE SHAPE")
 #sets
 fontdropdown.items[0].selected = True
 shapedropdown.items[0].selected = True
@@ -1413,7 +1523,7 @@ tools = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follow
          Button(textool,fancyA,20,350,"Text tool: Write some Deadicated text"),
          Button(selectool,dottedbox,80,100,"Select tool: Select an area and manipulate with Deadication"),
          Button(linetool,linesprite,80,150,"Line tool: Draw a line"),
-         Button(shapetool,roundedrect,80,200,"Shape tool: Draw a shape to give your Deadication some structure"),
+         Button(shapetool,roundedrect,80,200,"Shape tool (Rect): Draw a rectangle by clicking and dragging"),
          Button(filltool,fillbucket,80,250,"Fill tool: Fill an area with a colour (Warning: uses a lot of CPU)"),
          Button("save",saveicon,1120,100,"Save your work of Deadication (Ctrl-S)",60,60),
          Button("open",openicon,1120,170,"Open a previously saved image (Ctrl-O) - right click to open without deleting current work (Ctrl-Shift-O)",60,60),
@@ -1794,12 +1904,6 @@ while running:
     #DRAWS CIRCLES OF COLOR INDICATION ON PALETTE
     draw.circle(screen,WHITE,pspot1,10,1)
     draw.circle(screen,BLOODRED,pspot2,10,1)
-    #DRAWS TOOLBIT
-    #following loop displays toolbit if the mouse is touching the button
-    for t in tools:
-        if t.istouch():
-            t.disptoolbit(screen)
-            break
     #HANDLES DROP DOWN MENUS
     if fontdropdown.menudown:
         for i in fontdropdown.items:
@@ -1855,6 +1959,12 @@ while running:
         #if the mouse is above the canvas and not above a menu, we draw a sprite
         mouse.set_visible(False)
         currtool.drawsprite(screen)
+    #DRAWS TOOLBIT
+    #following loop displays toolbit if the mouse is touching the button
+    for t in tools:
+        if t.istouch():
+            t.disptoolbit(screen)
+            break
     else:
         #else we draw the mouse
         mouse.set_visible(True)
