@@ -336,7 +336,10 @@ class volSlider():
         music[song].set_volume(self.place)
     def draw(self,screen):
         #draws volume indicator box on top
-        draw.rect(screen,WHITE,(self.x,self.y-20,self.width,20))
+        draw.rect(screen,WHITE,(self.x,self.y-40,self.width,40))
+        comicsans.set_underline(True)
+        screen.blit(comicsans.render("Volume Level",True,BLACK),(self.x,self.y-40))
+        comicsans.set_underline(False)
         screen.blit(comicsans.render(str(round(self.place*100))+"%",True,BLACK),(self.x,self.y-20))
         #draws volume box
         draw.rect(screen,LIGHT_GREY,(self.x,self.y,self.width,self.height))
@@ -492,7 +495,7 @@ class Brush(Tool):
         self.sx = mx #starting coords for lines drawn with this tool
         self.sy = my
         self.size = 10 #size of brush
-        self.alpha = 255 #alpha value of brush
+        self.alpha = 100 #alpha value of brush (in %)
         self.col = lcol #color of brush
     def lclick(self,screen):
         #changes sx and sy to be where mouse is
@@ -530,10 +533,10 @@ class Brush(Tool):
             dist = max(1,dist) #makes sure distance isn't 0 so division by 0 doesn't occur
             lx = (mx-self.sx)/dist #increment of x and y values of the line
             ly = (my-self.sy)/dist
-            color = (self.col[0],self.col[1],self.col[2],self.alpha)
+            color = (self.col[0],self.col[1],self.col[2],int(self.alpha/100*255))          
+            tempdraw = Surface((self.size*2,self.size*2),SRCALPHA)
+            draw.circle(tempdraw,color,(self.size,self.size),self.size)
             for i in range(int(dist)):
-                tempdraw = Surface((self.size*2,self.size*2),SRCALPHA)
-                draw.circle(tempdraw,color,(self.size,self.size),self.size)
                 screen.blit(tempdraw,(int(self.sx+lx*i)-self.size,int(self.sy+ly*i)-self.size))
         else:
             #draws a simple line
@@ -554,8 +557,10 @@ class Brush(Tool):
             self.col = rcol
         else:
             self.col = lcol
-        if self.size > 0:
-            draw.circle(screen,self.col,(mx,my),self.size) #draws circle to show user how big brush is
+        if self.size > 0:          
+            tempdraw = Surface((self.size*2,self.size*2),SRCALPHA)
+            draw.circle(tempdraw,(self.col[0],self.col[1],self.col[2],int(self.alpha/100*255)),(self.size,self.size),self.size) #draws circle to show user how big brush is
+            screen.blit(tempdraw,(mx-self.size,my-self.size))
         else:
             screen.set_at((mx,my),self.col)
         screen.blit(self.icon,(mx,my-40))
@@ -1500,6 +1505,10 @@ class Button():
         elif self.func == "copy":
             #copy button
             boxcp = (self.arg2,(300,50)) #sets clipboard to copied object
+        elif self.func == "alpha":
+            #alpha% scale button
+            brushtool.alpha += self.arg2 #changes alpha value of brushtool
+            brushtool.alpha = min(max(0,brushtool.alpha),100) #limits brushtool alpha% to be from 0 - 100
     def disptoolbit(self,screen):
         #displays the toolbit so that user can know what button's tool does
         global comicsans
@@ -1570,11 +1579,14 @@ shapedropdown = DropDownBox(114,412,[Button("shape",comicsans.render("Rectangle"
 fontdropdown.items[0].selected = True
 shapedropdown.items[0].selected = True
 #Fontsize buttons
-fontsizebuttons = [Button("fontsize",comicsans.render(" <",True,BLACK),114,432,"Change fontsize",20,20,-1),
-                   Button("fontsize",comicsans.render(" >",True,BLACK),250,432,"Change fontsize",20,20,1)]
+fontsizebuttons = [Button("fontsize",comicsans.render(" -",True,BLACK),114,432,"Change fontsize",20,20,-1),
+                   Button("fontsize",comicsans.render(" +",True,BLACK),250,432,"Change fontsize",20,20,1)]
 #shape width buttons
-shapewidthbuttons = [Button("shapewidth",comicsans.render(" <",True,BLACK),114,432,"Change width",20,20,-1),
-                   Button("shapewidth",comicsans.render(" >",True,BLACK),250,432,"Change width",20,20,1)]
+shapewidthbuttons = [Button("shapewidth",comicsans.render(" -",True,BLACK),114,432,"Change width",20,20,-1),
+                   Button("shapewidth",comicsans.render(" +",True,BLACK),250,432,"Change width",20,20,1)]
+#brush alpha buttons
+brushalphabuttons = [Button("alpha",comicsans.render(" -",True,BLACK),114,422,"Change alpha value",20,20,-1),
+                     Button("alpha",comicsans.render(" +",True,BLACK),250,422,"Change alpha value",20,20,1)]
 #----TOOL VARIABLES----#
 currtool = penciltool #current tool
 #buttons of all tools user can press (as well as other buttons such as save and open)
@@ -1673,6 +1685,8 @@ toolboxfiller = screen.subsurface(Rect(20,100,270,500)).copy() #tool box
 undo_mem = [] #undo_memory for previous saves for the undo function
 redo_mem = [] #redo_memory for saves removed by the undo function for the redo function
 boxcp = None #clipboard for boxes (created by the select tool)
+mousetimer = 0 #keeps track of when last mouse click happened - for the incrementing/decreasing buttons so users can hold them
+buttonheld = Button("",Rect(0,0,0,0),0,0,"",0,0,BLACK) #button being held
 #----MAIN LOOP----#
 while running:
     #----MUSIC HANDLER----#
@@ -1744,13 +1758,25 @@ while running:
                     for b in fontsizebuttons:
                         if b.istouch():
                             b.clickon(screen)
+                            buttonheld = b
+                            mousetimer = time() #sets time clicked and button held
                             lastclick = "fontsize"
                             break
                 if currtool == shapetool:
                     for b in shapewidthbuttons:
                         if b.istouch():
                             b.clickon(screen)
+                            buttonheld = b
+                            mousetimer = time() #sets time clicked and button held
                             lastclick = "bordersize"
+                            break
+                if currtool == brushtool:
+                    for b in brushalphabuttons:
+                        if b.istouch():
+                            lastclick = "brushalphabutton"
+                            buttonheld = b
+                            mousetimer = time() #sets time clicked and button held
+                            b.clickon(screen)
                             break
                 for b in palbuttons:
                     if b.istouch():
@@ -1786,6 +1812,7 @@ while running:
             if lastclick == "canvas":
                 if e.button not in [4,5]:
                     currtool.mouseup(screen) #tool's mouseup method
+            mousetimer = 0 #resets mouse timer
         if e.type == KEYDOWN:
             #----KEY PRESS FUNCTIONS----#
             kp = key.get_pressed()
@@ -1923,7 +1950,10 @@ while running:
     if currtool == shapetool:
         for b in shapewidthbuttons:
             b.display(screen)
-    #----SIZE INDICATORS----#
+    if currtool == brushtool:
+        for b in brushalphabuttons:
+            b.display(screen)
+    #----SIZE INDICATORS AND CHANGERS----#
     if currtool == textool:
         draw.rect(screen,WHITE,(134,432,116,20))
         screen.blit(comicsans.render("Font-size: "+str(textool.fontsize),True,BLACK),(134,432)) #displays fontsize for textbox
@@ -1931,6 +1961,12 @@ while running:
         draw.rect(screen,WHITE,(134,432,116,20))
         dispwidth = "Border size: "+str(shapetool.width) if shapetool.width > 0 else "No border (fill)"
         screen.blit(comicsans.render(dispwidth,True,BLACK),(134,432)) #displays width of shapetool for shape tool
+    elif currtool == brushtool:
+        draw.rect(screen,WHITE,(134,412,116,40))
+        comicsans.set_bold(True)
+        screen.blit(comicsans.render("Transparency",True,BLACK),(134,412))
+        comicsans.set_bold(False)
+        screen.blit(comicsans.render(str(brushtool.alpha)+"%",True,BLACK),(134,432)) #displays transparency for brush
     #----MOUSE HOLD FUNCTIONS----#
     mb = mouse.get_pressed()
     mx,my = mouse.get_pos()
@@ -1943,6 +1979,11 @@ while running:
             screen.set_clip(canvas)
             currtool.outside()
             screen.set_clip(None)
+            if mousetimer != 0:
+                #checks if mousetimer is set - if it is we call the button's click method
+                if time() - mousetimer > 0.5:
+                    if buttonheld.istouch():
+                        buttonheld.clickon(screen)
             if palrect.collidepoint(mx,my) and lastclick == "palette":
                 #if user clicked in palette, the following if statements will change the color of either his left mouse or his right mouse button
                 if mb[0]:
