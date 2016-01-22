@@ -74,6 +74,7 @@ ellipsesprite = transform.scale(image.load("images/ellipse.png"),(40,40))
 polygonsprite = transform.scale(image.load("images/polygon.png"),(40,40))
 dottedbox = transform.scale(image.load("images/dottedbox.gif"),(40,40))
 fillbucket = image.load("images/fillbucket.png")
+bluricon = transform.scale(image.load("images/waterdrop.png"),(40,40))
 spraycan = transform.scale(image.load("images/spraypaint.png"),(40,40))
 ibeam = transform.scale(image.load("images/ibeam.png"),(40,40))
 crosscursor = transform.scale(image.load("images/crosscursor.gif"),(40,40))
@@ -315,8 +316,38 @@ class GradSel():
             #if the user is clicking the red arrow we also allow touch
             return True
         return Rect(self.x,self.y,self.width,self.height).collidepoint((mx,my)) #otherwise we return true if the user pressed the gradient box
-        
+#-----------------------------VOLUME SLIDER
+class volSlider():
+    def __init__(self,x,y,width,height):
+        self.x,self.y,self.width,self.height = x,y,width,height #dimensions and co-ords of volume slider
+        self.visible = False #is it visble?
+        self.sliderheight = self.height-20  #height of slider
+        self.sliderx = self.x+(self.width-20)//2#x co-ord of slider pos
+        self.place = 1 #place of volume slider
+    def istouch(self):
+        #is the mouse touching the volume slider? Well this method says!
+        mx,my = mouse.get_pos()
+        #we check if the mouse collides with the slider
+        return Rect(self.sliderx,self.y+5,20,self.sliderheight+5).collidepoint(mx,my)
+    def cont(self,screen):
+        mx,my = mouse.get_pos()
+        #while mouse is being held on volume slider
+        self.place = ((self.y+self.sliderheight+5) - min(max(self.y+5,my),self.y+self.sliderheight+5))/self.sliderheight
+        music[song].set_volume(self.place)
+    def draw(self,screen):
+        #draws volume indicator box on top
+        draw.rect(screen,WHITE,(self.x,self.y-20,self.width,20))
+        screen.blit(comicsans.render(str(round(self.place*100))+"%",True,BLACK),(self.x,self.y-20))
+        #draws volume box
+        draw.rect(screen,LIGHT_GREY,(self.x,self.y,self.width,self.height))
+        #draws slider line
+        draw.line(screen,WHITE,(self.sliderx+10,self.y+5),(self.sliderx+10,self.y+self.height-6))
+    def drawSel(self,screen):
+        #draws the volume selector
+        draw.rect(screen,RED,(self.sliderx,self.y+int((1-self.place)*self.sliderheight)+5,20,10))
+
 #--------------------TOOL CLASSES--------------------#
+
 #--basis for tools
 class Tool():
     def __init__(self):
@@ -461,6 +492,7 @@ class Brush(Tool):
         self.sx = mx #starting coords for lines drawn with this tool
         self.sy = my
         self.size = 10 #size of brush
+        self.alpha = 255 #alpha value of brush
         self.col = lcol #color of brush
     def lclick(self,screen):
         #changes sx and sy to be where mouse is
@@ -498,8 +530,11 @@ class Brush(Tool):
             dist = max(1,dist) #makes sure distance isn't 0 so division by 0 doesn't occur
             lx = (mx-self.sx)/dist #increment of x and y values of the line
             ly = (my-self.sy)/dist
+            color = (self.col[0],self.col[1],self.col[2],self.alpha)
             for i in range(int(dist)):
-                draw.circle(screen,self.col,(int(self.sx+lx*i),int(self.sy+ly*i)),self.size)
+                tempdraw = Surface((self.size*2,self.size*2),SRCALPHA)
+                draw.circle(tempdraw,color,(self.size,self.size),self.size)
+                screen.blit(tempdraw,(int(self.sx+lx*i)-self.size,int(self.sy+ly*i)-self.size))
         else:
             #draws a simple line
             draw.line(screen,self.col,(self.sx,self.sy),(mx,my))
@@ -556,14 +591,14 @@ class Line(Tool):
         #same algorithm as brush tool
         screen.blit(cfiller,(300,50))
         mx,my = mouse.get_pos()
-        if self.size > 1:
+        if self.size > 0:
             #line algorithm
             dist = ((mx-self.sx)**2+(my-self.sy)**2)**0.5 #distance
             dist = max(1,dist) #makes sure distance isn't 0 so division by 0 doesn't occur
             lx = (mx-self.sx)/dist #increment of x and y values of the line
             ly = (my-self.sy)/dist
             for i in range(int(dist)):
-                draw.circle(screen,self.col,(int(self.sx+lx*i),int(self.sy+ly*i)),self.size//2)
+                draw.circle(screen,self.col,(int(self.sx+lx*i),int(self.sy+ly*i)),self.size)
         else:
             #draws a simple line
             draw.line(screen,self.col,(self.sx,self.sy),(mx,my))
@@ -1176,6 +1211,33 @@ class Fill(Tool):
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
         screen.blit(self.icon,(mx-40,my-40))
+#-------------------------------------------Blur
+class Blur(Tool):
+    #blurs an area within a circle
+    def __init__(self):
+        self.icon = bluricon
+    def cont(self,screen):
+        #blurs while mouse is held
+        for x in range(mx-10,mx+11):
+            for y in range(my-10,my+11):
+                if hypot(mx-x,my-y) <= 10 and canvas.collidepoint(x,y):
+                    r,g,b,a = screen.get_at((x,y))
+                    rs,gs,bs = [],[],[]
+                    for dx,dy in [(-1,0),(0,-1),(1,0),(0,1)]:
+                        if canvas.collidepoint(x+dx,y+dy):
+                            ri,gi,bi,a = screen.get_at((x+dx,y+dy))
+                            rs.append(ri)
+                            gs.append(gi)
+                            bs.append(bi)
+                    r2 = (r+sum(rs))//(len(rs)+1)
+                    g2 = (g+sum(gs))//(len(rs)+1)
+                    b2 = (b+sum(bs))//(len(rs)+1)
+                    screen.set_at((x,y),(r2,g2,b2))
+    def drawsprite(self,screen):
+        mx,my = mouse.get_pos()
+        screen.blit(self.icon,(mx-20,my-35))
+        draw.circle(screen,BLACK,(mx,my),10,1)
+        screen.blit(crosscursor,(mx-21,my-20))
 #-------------------------------------------Stamp
 class Stamp(Tool):
     #stamps images
@@ -1316,8 +1378,8 @@ class Button():
         global shapetool
         global root
         global cfiller
-        global mem
-        global mem2
+        global undo_mem
+        global redo_mem
         global boxcp
         if issubclass(type(self.func),Tool):
             #tool change button
@@ -1394,10 +1456,10 @@ class Button():
             loadname = filedialog.askopenfilename(filetypes=[("Images", "*.png;*.bmp;*.jpg;*.jpeg")])
             mouse.set_visible(True)
             if loadname:
-                if len(mem) >= 256:
-                    del mem[0] #removes the last thing memorized if we're over the limit
-                mem2 = []
-                mem.append(screen.copy())
+                if len(undo_mem) >= 256:
+                    del undo_mem[0] #removes the last thing undo_memorized if we're over the limit
+                redo_mem = []
+                undo_mem.append(screen.copy().subsurface(canvas))
                 if not rclick:
                     draw.rect(screen,WHITE,canvas) #clears everything previously on the canvas if user does not hold shift
                 cfiller = screen.copy().subsurface(canvas)
@@ -1416,24 +1478,24 @@ class Button():
             mouse.set_visible(False)
         elif self.func == "undo":
             #undo button
-            if len(mem) > 0:
-                mem2.append(screen.copy()) #appends the current screen to redo list
-                prevsave = mem.pop(-1) #prevsave = last screen save
-                screen.blit(prevsave,(0,0)) #fills the screen with new save
+            if len(undo_mem) > 0:
+                redo_mem.append(screen.copy().subsurface(canvas)) #appends the current screen to redo list
+                prevsave = undo_mem.pop(-1) #prevsave = last screen save
+                screen.blit(prevsave,(canvas[0],canvas[1])) #fills the screen with new save
         elif self.func == "redo":
             #redo button
-            if len(mem2) > 0:
-                if len(mem) >= 256:
-                    del mem[0] #removes the last thing memorized if we're over the limit
-                mem.append(screen.copy()) #appends current screen to undo list
-                prevsave = mem2.pop(-1) #gets new screen from redo list
-                screen.blit(prevsave,(0,0))
+            if len(redo_mem) > 0:
+                if len(undo_mem) >= 256:
+                    del undo_mem[0] #removes the last thing undo_memorized if we're over the limit
+                undo_mem.append(screen.copy().subsurface(canvas)) #appends current screen to undo list
+                prevsave = redo_mem.pop(-1) #gets new screen from redo list
+                screen.blit(prevsave,(canvas[0],canvas[1]))
         elif self.func == "clear":
             #clear button
-            if len(mem) >= 256:
-                del mem[0]
-            mem.append(screen.copy())
-            mem2 = [] #adds to undo list memory and deletes all of redo list memory
+            if len(undo_mem) >= 256:
+                del undo_mem[0]
+            undo_mem.append(screen.copy().subsurface(canvas))
+            redo_mem = [] #adds to undo list undo_memory and deletes all of redo list undo_memory
             draw.rect(screen,WHITE,canvas) #fills canvas white
         elif self.func == "copy":
             #copy button
@@ -1484,6 +1546,7 @@ shapetool = Shape() #shape tool
 selectool = Select() #select tool
 spraytool = Spray() #spray tool
 filltool = Fill() #fill tool
+blurtool = Blur() #blur tool
 #stamps
 yunostamp = Stamp(yunogasai,yandereyuno) #Yuno Gasai stamp
 kotonohastamp = Stamp(kotonohakatsura,yanderekotonoha) #Kotonoha Katsura stamp
@@ -1493,25 +1556,25 @@ tokostamp = Stamp(tokofukawa,genocidersyo) #Toko Fukawa stamp
 ryokostamp = Stamp(ryokoasakura,yandereryoko) #Ryoko Asakura stamp
 #DROP DOWN BOXES
 #drop down box for fonts
-fontdropdown = DropDownBox(60,350,[Button("font",comicsans.render("Comic Sans MS",True,BLACK),60,370,"Change Font-Family",136,20,"comicsansms"),
-                                   Button("font",arial.render("Arial",True,BLACK),60,390,"Change Font-Family",136,20,"arial"),
-                                   Button("font",timesnr.render("Times New Roman",True,BLACK),60,410,"Change Font-Family",136,20,"timesnewroman"),
-                                   Button("font",lucidaconsole.render("Lucida Console",True,BLACK),60,430,"Change Font-Family",136,20,"lucidaconsole"),
-                                   Button("font",impact.render("Impact",True,BLACK),60,450,"Change Font-Family",136,20,"impact"),
-                                   Button("font",vladimirscript.render("Vladimir Script",True,BLACK),60,470,"Change Font-Family",136,20,"vladimirscript")],"SELECT FONT")
+fontdropdown = DropDownBox(114,412,[Button("font",comicsans.render("Comic Sans MS",True,BLACK),114,432,"Change Font-Family",136,20,"comicsansms"),
+                                   Button("font",arial.render("Arial",True,BLACK),114,452,"Change Font-Family",136,20,"arial"),
+                                   Button("font",timesnr.render("Times New Roman",True,BLACK),114,472,"Change Font-Family",136,20,"timesnewroman"),
+                                   Button("font",lucidaconsole.render("Lucida Console",True,BLACK),114,492,"Change Font-Family",136,20,"lucidaconsole"),
+                                   Button("font",impact.render("Impact",True,BLACK),114,512,"Change Font-Family",136,20,"impact"),
+                                   Button("font",vladimirscript.render("Vladimir Script",True,BLACK),114,532,"Change Font-Family",136,20,"vladimirscript")],"SELECT FONT")
 #drop down boxes for shapes
-shapedropdown = DropDownBox(120,200,[Button("shape",comicsans.render("Rectangle",True,BLACK),120,220,"Draw a rectangle by clicking and dragging",140,20,"rect"),
-                                     Button("shape",comicsans.render("Ellipse",True,BLACK),120,240,"Draw an ellipse by clicking and dragging",140,20,"ellipse"),
-                                     Button("shape",comicsans.render("Polygon",True,BLACK),120,260,"Left-click or right-click to start setting points; left-click to continue setting points; right click to finish polygon",140,20,"polygon")],"CHANGE SHAPE")
+shapedropdown = DropDownBox(114,412,[Button("shape",comicsans.render("Rectangle",True,BLACK),114,432,"Draw a rectangle by clicking and dragging",140,20,"rect"),
+                                     Button("shape",comicsans.render("Ellipse",True,BLACK),114,452,"Draw an ellipse by clicking and dragging",140,20,"ellipse"),
+                                     Button("shape",comicsans.render("Polygon",True,BLACK),114,472,"Left-click or right-click to start setting points; left-click to continue setting points; right click to finish polygon",140,20,"polygon")],"CHANGE SHAPE")
 #sets
 fontdropdown.items[0].selected = True
 shapedropdown.items[0].selected = True
 #Fontsize buttons
-fontsizebuttons = [Button("fontsize",comicsans.render(" <",True,BLACK),60,370,"Change fontsize",20,20,-1),
-                   Button("fontsize",comicsans.render(" >",True,BLACK),190,370,"Change fontsize",20,20,1)]
+fontsizebuttons = [Button("fontsize",comicsans.render(" <",True,BLACK),114,432,"Change fontsize",20,20,-1),
+                   Button("fontsize",comicsans.render(" >",True,BLACK),250,432,"Change fontsize",20,20,1)]
 #shape width buttons
-shapewidthbuttons = [Button("shapewidth",comicsans.render(" <",True,BLACK),120,220,"Change width",20,20,-1),
-                   Button("shapewidth",comicsans.render(" >",True,BLACK),250,220,"Change width",20,20,1)]
+shapewidthbuttons = [Button("shapewidth",comicsans.render(" <",True,BLACK),114,432,"Change width",20,20,-1),
+                   Button("shapewidth",comicsans.render(" >",True,BLACK),250,432,"Change width",20,20,1)]
 #----TOOL VARIABLES----#
 currtool = penciltool #current tool
 #buttons of all tools user can press (as well as other buttons such as save and open)
@@ -1525,12 +1588,13 @@ tools = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follow
          Button(linetool,linesprite,80,150,"Line tool: Draw a line"),
          Button(shapetool,roundedrect,80,200,"Shape tool (Rect): Draw a rectangle by clicking and dragging"),
          Button(filltool,fillbucket,80,250,"Fill tool: Fill an area with a colour (Warning: uses a lot of CPU)"),
+         Button(blurtool,bluricon,80,300,"Blur tool: Blur a 10px radius circle to blend in your \"works\" of Deadication"),
          Button("save",saveicon,1120,100,"Save your work of Deadication (Ctrl-S)",60,60),
          Button("open",openicon,1120,170,"Open a previously saved image (Ctrl-O) - right click to open without deleting current work (Ctrl-Shift-O)",60,60),
          Button("undo",undoicon,1120,240,"Undo last action on canvas (Ctrl-Z)",60,60),
          Button("redo",redoicon,1120,310,"Redo last undone action on canvas (Ctrl-Shift-Z)",60,60),
          Button("clear",clearicon,1120,380,"Clear the canvas (Ctrl-Space)",60,60)]
-#stamp's 2-d list, each nested list contains the stamps for one stamp page
+#stamp's 2D list, each nested list contains the stamps for one stamp page
 stamps = [[Button(yunostamp,yunoface,600,690,"Paste the cute yet scary Yuno Gasai, of whom violence is no problem",50,50),
          Button(kotonohastamp,kotonohaface,660,690,"Paste the shy yet violent Kotonoha Katsura, who easily goes insane",50,50),
          Button(lucystamp,lucyface,720,690,"Paste the pretty yet ruthless Lucy, who has an amnesiac alter-ego known as Nyu",50,50),
@@ -1541,7 +1605,7 @@ stampage = 0 #which stamp page are we on
 tools += stamps[0] #adds the first page of stamps to tools
 #----CANVAS----#
 canvas = Rect(300,50,800,600) #canvas rect
-draw.rect(screen,BLACK,(299,49,802,602)) #draws canvas border
+draw.rect(screen,GREY,(299,49,802,602)) #draws canvas border
 draw.rect(screen,WHITE,canvas) #draws canvas
 cfiller = screen.copy().subsurface(canvas) #canvas filler
 #------BACKGROUND------#
@@ -1570,8 +1634,8 @@ ystamptitle = comicsans.render("STAMPS OF DEADICATION",True,BLOODRED) #Title of 
 screen.blit(ystamptitle,(600,660))
 comicsans.set_bold(False)
 #----COLOR PALETTE----#
-draw.rect(screen,BLACK,(19,475,187,82),1) #drawing background for palette buttons
-draw.rect(screen,DARK_GREY,(20,476,185,80))
+draw.rect(screen,BLACK,(19,475,260,82),1) #drawing background for palette buttons
+draw.rect(screen,DARK_GREY,(20,476,258,80))
 screen.blit(comicsans.render("COLOUR PALETTE",True,WHITE),(50,486)) #blitting title of color palette
 draw.rect(screen,BLACK,(19,545,262,186)) #draws border for palette
 palette = transform.scale(image.load("images/spectrum_chart.jpg"),(260,184)) #palette
@@ -1590,18 +1654,24 @@ gradsel = GradSel(300,692,275,36)#gradient selector
 lcolbutton = Button("color",Rect(300,656,30,30),300,656,"",30,30,lcol) #left mouse color button
 rcolbutton = Button("color",Rect(332,656,30,30),332,656,"",30,30,rcol) #right mouse color buttons
 rcolbutton.selected = True #not really selected, but this allows for the right mouse color button to have a red border
+#----TOOL INFO BOX----#
+info_box = Surface((260,65),SRCALPHA)
+draw.rect(info_box,(185,185,185,185),(0,0,260,65))
+screen.blit(info_box,(20,400))
 #----BOTTOM STRIP OF INFO----#
 bottomstrip = Surface((556,20),SRCALPHA)
 bottomstrip.fill((150,150,150,200))
 #----KEY VARIABLES----#
 keytimer = 0 #timer for key pressed - allows for key holding
 keypressed = "" #key pressed by user
+#----VOLUME SLIDER----#
+volslide = volSlider(1150,640,50,100)
 #----other important variables----#
 lastclick = "" #keeps track of last click
 filler = screen.copy() #screen filler - used for mouse sprites and toolbits and other temporary pop-ups
 toolboxfiller = screen.subsurface(Rect(20,100,270,500)).copy() #tool box
-mem = [] #memory for previous saves for the undo function
-mem2 = [] #memory for saves removed by the undo function for the redo function
+undo_mem = [] #undo_memory for previous saves for the undo function
+redo_mem = [] #redo_memory for saves removed by the undo function for the redo function
 boxcp = None #clipboard for boxes (created by the select tool)
 #----MAIN LOOP----#
 while running:
@@ -1632,12 +1702,12 @@ while running:
                     #back scroll
                     currtool.scroll(screen,False)
                 else:
-                    if not textool.hastextbox and not selectool.hasbox:
-                        if len(mem) >= 256:
-                            del mem[0] #limits memory at 256
-                        #makes sure we don't have an open text box or an open select box when we click, as that will just close the selected box and shouldn't be saved into memory
-                        mem2 = [] #makes the redo option empty as it shouldn't do anything once new data is added to the screen
-                        mem.append(screen.copy()) #adds a screenshot to the undo list memory before the user's change to the canvas
+                    if not textool.hastextbox and not selectool.hasbox and not (currtool == shapetool and len(shapetool.points) > 0):
+                        if len(undo_mem) >= 256:
+                            del undo_mem[0] #limits undo_memory at 256
+                        #makes sure we don't have an open text box or an open select box when we click, as that will just close the selected box and shouldn't be saved into undo_memory
+                        redo_mem = [] #makes the redo option empty as it shouldn't do anything once new data is added to the screen
+                        undo_mem.append(screen.copy().subsurface(canvas)) #adds a screenshot to the undo list undo_memory before the user's change to the canvas
                     if e.button == 1:
                         currtool.lclick(screen) #calls tool's left click method
                     elif e.button == 3:
@@ -1722,34 +1792,32 @@ while running:
             keypressed = e.unicode #pressed key
             keytimer = time() #time pressed by user
             canundo = True #can the user undo under the circumstances (applies to redo as well)
-            if type(currtool) == Text:
-                if currtool.hastextbox:
-                    #if the current tool has a text box, you cannot undo
-                    canundo = False
-            elif type(currtool) == Select:
-                if currtool.hasbox:
-                    #if the current tool has a box, you cannot undo
-                    canundo = False
+            if textool.hastextbox or selectool.hasbox or (currtool == shapetool and len(shapetool.points) > 0) or mouse.get_pressed()[0] or mouse.get_pressed()[2]:
+                #if the current tool has a text box, you cannot undo
+                #if the current tool has a box, you cannot undo
+                #if we are currently forming a polygon, we cannot undo
+                #if we are holding down a mouse button, we cannot undo
+                canundo = False
             if kp[K_z] and (kp[K_LCTRL] or kp[K_RCTRL]) and (kp[K_LSHIFT] or kp[K_RSHIFT]) and canundo:
                 #if the user pressed Ctrl-Shift-Z will redo
-                if len(mem2) > 0:
-                    if len(mem) >= 256:
-                        del mem[0] #removes the last thing memorized if we're over the limit
-                    mem.append(screen.copy()) #appends current screen to undo list
-                    prevsave = mem2.pop(-1) #gets new screen from redo list
-                    screen.blit(prevsave,(0,0))
+                if len(redo_mem) > 0:
+                    if len(undo_mem) >= 256:
+                        del undo_mem[0] #removes the last thing undo_memorized if we're over the limit
+                    undo_mem.append(screen.copy().subsurface(canvas)) #appends current screen to undo list
+                    prevsave = redo_mem.pop(-1) #gets new screen from redo list
+                    screen.blit(prevsave,(canvas[0],canvas[1]))
             elif kp[K_z] and (kp[K_LCTRL] or kp[K_RCTRL]) and canundo:
                 #if the user presses Ctrl-Z will undo
-                if len(mem) > 0:
-                    mem2.append(screen.copy()) #appends the current screen to redo list
-                    prevsave = mem.pop(-1) #prevsave = last screen save
-                    screen.blit(prevsave,(0,0)) #fills the screen with new save
+                if len(undo_mem) > 0:
+                    redo_mem.append(screen.copy().subsurface(canvas)) #appends the current screen to redo list
+                    prevsave = undo_mem.pop(-1) #prevsave = last screen save
+                    screen.blit(prevsave,(canvas[0],canvas[1])) #fills the screen with new save
             elif kp[K_SPACE] and (kp[K_LCTRL] or kp[K_RCTRL]):
                 #clears the canvas if user presses CTRL and space
-                if len(mem) >= 256:
-                    del mem[0] #removes the last thing memorized if we're over the limit
-                mem2 = [] #makes the redo option empty as it shouldn't do anything once new data is added to the screen
-                mem.append(screen.copy()) #adds a screenshot to the undo list memory before the user's change to the canvas
+                if len(undo_mem) >= 256:
+                    del undo_mem[0] #removes the last thing undo_memorized if we're over the limit
+                redo_mem = [] #makes the redo option empty as it shouldn't do anything once new data is added to the screen
+                undo_mem.append(screen.copy().subsurface(canvas)) #adds a screenshot to the undo list undo_memory before the user's change to the canvas
                 draw.rect(screen,WHITE,canvas)
             elif kp[K_s] and (kp[K_LCTRL] or kp[K_RCTRL]):
                 #if user presses CTRL-S will save
@@ -1776,10 +1844,10 @@ while running:
                 mouse.set_visible(True)
                 loadname = filedialog.askopenfilename(filetypes=[("Images", "*.png;*.bmp;*.jpg;*.jpeg")])
                 if loadname:
-                    if len(mem) >= 256:
-                        del mem[0] #removes the last thing memorized if we're over the limit
-                    mem2 = []
-                    mem.append(screen.copy())
+                    if len(undo_mem) >= 256:
+                        del undo_mem[0] #removes the last thing undo_memorized if we're over the limit
+                    redo_mem = []
+                    undo_mem.append(screen.copy().subsurface(canvas))
                     if not kp[K_LSHIFT] and not kp[K_RSHIFT]:
                             draw.rect(screen,WHITE,canvas) #clears everything previously on the canvas if user does not hold shift
                     cfiller = screen.copy().subsurface(canvas)
@@ -1803,10 +1871,10 @@ while running:
                 #CTRL-V
                 #pastes clipboard image
                 if boxcp != None:
-                    if len(mem) >= 256:
-                        del mem[0] #removes the last thing memorized if we're over the limit
-                    mem.append(screen.copy()) #appends current screen to undo list
-                    mem2 = []
+                    if len(undo_mem) >= 256:
+                        del undo_mem[0] #removes the last thing undo_memorized if we're over the limit
+                    undo_mem.append(screen.copy().subsurface(canvas)) #appends current screen to undo list
+                    redo_mem = []
                     screen.set_clip(canvas)
                     if selectool.hasbox:
                         screen.blit(selectool.selectedbox,(selectool.x,selectool.y))
@@ -1857,12 +1925,12 @@ while running:
             b.display(screen)
     #----SIZE INDICATORS----#
     if currtool == textool:
-        draw.rect(screen,WHITE,(80,370,110,20))
-        screen.blit(comicsans.render("Font-size: "+str(textool.fontsize),True,BLACK),(80,370)) #displays fontsize for textbox
+        draw.rect(screen,WHITE,(134,432,116,20))
+        screen.blit(comicsans.render("Font-size: "+str(textool.fontsize),True,BLACK),(134,432)) #displays fontsize for textbox
     elif currtool == shapetool:
-        draw.rect(screen,WHITE,(140,220,110,20))
+        draw.rect(screen,WHITE,(134,432,116,20))
         dispwidth = "Border size: "+str(shapetool.width) if shapetool.width > 0 else "No border (fill)"
-        screen.blit(comicsans.render(dispwidth,True,BLACK),(140,220)) #displays width of shapetool for shape tool
+        screen.blit(comicsans.render(dispwidth,True,BLACK),(134,432)) #displays width of shapetool for shape tool
     #----MOUSE HOLD FUNCTIONS----#
     mb = mouse.get_pressed()
     mx,my = mouse.get_pos()
@@ -1886,6 +1954,9 @@ while running:
             elif gradsel.istouch() and lastclick == "gradsel":
                 #gradient selector mouse hold
                 gradsel.cont(screen)
+            elif volslide.istouch():
+                #volume slider mouse hold
+                volslide.cont(screen)
     elif mb[1]:
         pass
     else:
@@ -1893,17 +1964,53 @@ while running:
     #----KEY HOLD HANDLING----#
     if keytimer != 0:
         if time() - keytimer > 0.5:
-            #if user held the key for more than 0.5 seconds, it calls the keypress function
-            currtool.keypress(screen,keypressed)
-            sleep(0.015) #delays the time a little bit when holding the key
+            #allows for user to hold key down
+            canundo = True #can the user undo under the circumstances (applies to redo as well)
+            if textool.hastextbox or selectool.hasbox or (currtool == shapetool and len(shapetool.points) > 0) or mouse.get_pressed()[0] or mouse.get_pressed()[2]:
+                #if the current tool has a text box, you cannot undo
+                #if the current tool has a box, you cannot undo
+                #if we are currently forming a polygon, we cannot undo
+                #if we are holding down a mouse button, we cannot undo
+                canundo = False
+            if kp[K_z] and (kp[K_LCTRL] or kp[K_RCTRL]) and (kp[K_LSHIFT] or kp[K_RSHIFT]) and canundo:
+                #if the user pressed Ctrl-Shift-Z will redo
+                if len(redo_mem) > 0:
+                    if len(undo_mem) >= 256:
+                        del undo_mem[0] #removes the last thing undo_memorized if we're over the limit
+                    undo_mem.append(screen.copy().subsurface(canvas)) #appends current screen to undo list
+                    prevsave = redo_mem.pop(-1) #gets new screen from redo list
+                    screen.blit(prevsave,(canvas[0],canvas[1]))
+            elif kp[K_z] and (kp[K_LCTRL] or kp[K_RCTRL]) and canundo:
+                #if the user presses Ctrl-Z will undo
+                if len(undo_mem) > 0:
+                    redo_mem.append(screen.copy().subsurface(canvas)) #appends the current screen to redo list
+                    prevsave = undo_mem.pop(-1) #prevsave = last screen save
+                    screen.blit(prevsave,(canvas[0],canvas[1])) #fills the screen with new save
+            else:
+                #if user held the key for more than 0.5 seconds, it calls the keypress function
+                currtool.keypress(screen,keypressed)
+                sleep(0.015) #delays the time a little bit when holding the key
     #----SCREEN SAVING----#  
     filler = screen.copy() #copies all updates into filler
     #----Temporary drawings that should never stick to screen (e.g. sprites and toolbits)----#
     #DRAWS GRADIENT SELECTOR SELECTED LINE
     gradsel.drawSel(screen)
+    #DRAWS VOLUME SLIDER
+    volslide.draw(screen)
+    volslide.drawSel(screen)
     #DRAWS CIRCLES OF COLOR INDICATION ON PALETTE
     draw.circle(screen,WHITE,pspot1,10,1)
     draw.circle(screen,BLOODRED,pspot2,10,1)
+    #DRAWS INFORMATION ON TOOL INFO BOX
+    screen.blit(comicsans.render(currtool.__class__.__name__+" tool",True,BLACK),(30,412)) #blits tools' class name
+    if currtool == shapetool:
+        screen.blit(comicsans.render(shapetool.shape.title(),True,BLACK),(30,427)) #blits shape tool's shape
+    try:
+        #tries to draw size of tool - this will only work for tools with size attribute
+        size = 1 if currtool.size == 0 else currtool.size*2 #sets the size of the tool
+        screen.blit(comicsans.render("Size: "+str(size)+"px",True,BLACK),(30,427))
+    except:
+        pass
     #HANDLES DROP DOWN MENUS
     if fontdropdown.menudown:
         for i in fontdropdown.items:
@@ -1954,17 +2061,17 @@ while running:
     else:
         coords = "Off Canvas"
     screen.blit(lucidaconsole.render(coords+" L-Col: "+str(lcol[:3])+" R-Col: "+str(rcol[:3]),True,BLACK),(21,733))
-    #DRAWS MOUSE SPRITE
-    if canvas.collidepoint(mx,my) and (not selectool.hasmenu or not selectool.menurect.collidepoint(mx,my)):
-        #if the mouse is above the canvas and not above a menu, we draw a sprite
-        mouse.set_visible(False)
-        currtool.drawsprite(screen)
     #DRAWS TOOLBIT
     #following loop displays toolbit if the mouse is touching the button
     for t in tools:
         if t.istouch():
             t.disptoolbit(screen)
             break
+    #DRAWS MOUSE SPRITE
+    if canvas.collidepoint(mx,my) and (not selectool.hasmenu or not selectool.menurect.collidepoint(mx,my)):
+        #if the mouse is above the canvas and not above a menu, we draw a sprite
+        mouse.set_visible(False)
+        currtool.drawsprite(screen)
     else:
         #else we draw the mouse
         mouse.set_visible(True)
