@@ -559,7 +559,7 @@ class Brush(Tool):
         else:
             self.col = lcol
         if self.size > 0:          
-            tempdraw2 = Surface((self.size*2,self.size*2),SRCALPHA)
+            tempdraw2 = Surface((self.size*2,self.size*2),SRCALPHA) #small drawing board for the transparent sprite
             draw.circle(tempdraw2,(self.col),(self.size,self.size),self.size) #draws circle to show user how big brush is
             screen.blit(tempdraw2,(mx-self.size,my-self.size))
         else:
@@ -625,16 +625,18 @@ class Line(Tool):
         global rcol
         mb = mouse.get_pressed()
         mx,my = mouse.get_pos()
+        tempdraw2 = Surface((self.size*2,self.size*2),SRCALPHA) #small drawing board for the transparent sprite
         if self.size > 0:
             if mb[2]:
-                draw.circle(screen,self.col,(mx,my),self.size)
+                draw.circle(tempdraw2,self.col,(self.size,self.size),self.size)
             else:
-                draw.circle(screen,lcol,(mx,my),self.size)
+                draw.circle(tempdraw2,lcol,(self.size,self.size),self.size)
         else:
             if mb[2]:
                 screen.set_at((mx,my),self.col)
             else:
                 screen.set_at((mx,my),lcol)
+        screen.blit(tempdraw2,(mx-self.size,my-self.size))
         screen.blit(self.icon,(mx,my-40))
     def keypress(self,screen,keypressed=""):
         if keypressed == " ":
@@ -773,13 +775,14 @@ class Text(Tool):
         global screen
         global lcol
         global rcol
-        if self.hastextbox and lastclick not in ["fontdropdown","fontsize","palbutton","palette","mousebutton","canvas"]:
+        if self.hastextbox and lastclick not in ["fontdropdown","fontsize","palbutton","palette","mousebutton","canvas","gradsel"]:
             self.hastextbox = False
             currtool.textbox.drawtext(screen)
         else:
             #changes dimensions
             mb = mouse.get_pressed()
-            if lastclick in ["palbutton","palette","mousebutton"]:
+            if lastclick in ["palbutton","palette","mousebutton","gradsel"]:
+                #changes color
                 if mb[0]:
                     col = lcol
                 else:
@@ -1066,7 +1069,6 @@ class Shape(Tool):
         #----Polygon----#
         if self.shape == "polygon":
             if len(self.points) == 0:
-                cfiller = screen.copy().subsurface(canvas) #sets cfiller to be canvas before click
                 self.col = rcol if mouse.get_pressed()[2] else lcol #sets color if there are no current points (first press)
             self.points.append((mx,my)) #adds point to points
             if self.width > 1:
@@ -1085,7 +1087,7 @@ class Shape(Tool):
                 else:
                     #simply draws a line if width is less than 2
                     draw.line(tempdraw,self.col,self.points[-2],self.points[-1])
-            return 0 #returns so that it does not run preceding code
+            return 0 #returns so that it does not run following code
         #----Other shapes----#
         cfiller = screen.copy().subsurface(canvas) #sets cfiller to be canvas before click
         self.sx,self.sy = mx,my #sets starting co-ords to mouse pos
@@ -1099,10 +1101,7 @@ class Shape(Tool):
             if len(self.points) <= 2:
                 self.points = [] #resets points if length of points is <=2 as we cannot make a polygon from 2 or less points
                 return 0
-            if self.width == 0:
-                draw.polygon(tempdraw,self.col,self.points,self.width) #draws the polygon
-            else:
-                draw.line(tempdraw,self.col,self.points[-1],self.points[0],self.width) #completes the polygon if it's bordered and not filled
+            draw.polygon(tempdraw,self.col,self.points,self.width) #draws the polygon
             self.points = [] #clears points
             return 0
         #----Other shapes----#
@@ -1119,14 +1118,14 @@ class Shape(Tool):
             self.width += 1
             self.width = min(99,self.width) #makes sure width does not exceed 99
         if self.shape == "polygon" and len(self.points) > 0:
-            screen.blit(cfiller,(canvas[0],canvas[1]))
+            tempdraw.fill((255,255,255,0))
             #if length of points is greater than 0 and we have a polygon shape active, we draw all the points again with the new size
             if len(self.points) == 1:
                 #if there is only one point we just draw a new circle/dot on the point
                 if self.width < 2:
                     screen.set_at(self.points[0],self.col)
                 else:
-                    draw.circle(screen,self.col,self.points[0],self.width//2)
+                    draw.circle(tempdraw,self.col,self.points[0],self.width//2)
             else:
                 for i in range(1,len(self.points)):
                     #line algorithm if the width is greater than 1
@@ -1137,9 +1136,9 @@ class Shape(Tool):
                         lx = (x2-x1)/dist #little x to increment circles by
                         ly = (y2-y1)/dist #little y to increment circles by
                         for i in range(int(dist)):
-                            draw.circle(screen,self.col,(int(x1+lx*i),int(y1+ly*i)),self.width//2)
+                            draw.circle(tempdraw,self.col,(int(x1+lx*i),int(y1+ly*i)),self.width//2)
                     else:
-                        draw.line(screen,self.col,self.points[i-1],self.points[i])
+                        draw.line(tempdraw,self.col,self.points[i-1],self.points[i])
     def cont(self,screen):
         global cfiller
         if self.shape == "polygon":
@@ -1166,6 +1165,10 @@ class Shape(Tool):
                 #if the width and height of the centre ellipse is greater than 0 and the ellipse has a border, draws transparent ellipse in the centre to simulate an ellipse with a border
                 draw.ellipse(ellipseSurface,(255,255,255,0),(self.width,self.width,abs(self.sx-mx)-self.width*2,abs(self.sy-my)-self.width*2))
             tempdraw.blit(ellipseSurface,(sx,sy)) #blits the ellipse surface
+    def mouseup(self,screen):
+        if self.shape != "polygon" or len(self.points) == 0:
+            #if shape isn't polygon we do it as normal or if it has no points set we do as normal
+            super(Shape,self).mouseup(screen)
     def keypress(self,screen,keypressed=""):
         if keypressed == " ":
             self.width = 0 #resets width when space is clicked
@@ -1598,8 +1601,8 @@ fontsizebuttons = [Button("fontsize",comicsans.render(" -",True,BLACK),114,432,"
 shapewidthbuttons = [Button("shapewidth",comicsans.render(" -",True,BLACK),114,432,"Change width",20,20,-1),
                    Button("shapewidth",comicsans.render(" +",True,BLACK),250,432,"Change width",20,20,1)]
 #alpha buttons
-alphabuttons = [Button("alpha",comicsans.render(" -",True,BLACK),140,100,"Change alpha value",20,20,-1),
-                     Button("alpha",comicsans.render(" +",True,BLACK),276,100,"Change alpha value",20,20,1)]
+alphabuttons = [Button("alpha",comicsans.render(" -",True,BLACK),132,110,"Change alpha value",20,20,-1),
+                     Button("alpha",comicsans.render(" +",True,BLACK),268,110,"Change alpha value",20,20,1)]
 #----TOOL VARIABLES----#
 currtool = penciltool #current tool
 #buttons of all tools user can press (as well as other buttons such as save and open)
@@ -1982,11 +1985,11 @@ while running:
     #----TRANSPARENCY INDICATOR----#
     if currtool in [penciltool,brushtool,spraytool,shapetool,linetool]:
         #displays transparency if transparency is available for tool
-        draw.rect(screen,WHITE,(160,90,116,40))
+        draw.rect(screen,WHITE,(152,100,116,40))
         comicsans.set_bold(True)
-        screen.blit(comicsans.render("Opacity",True,BLACK),(160,90))
+        screen.blit(comicsans.render("Opacity",True,BLACK),(152,100))
         comicsans.set_bold(False)
-        screen.blit(comicsans.render(str(alpha)+"%",True,BLACK),(160,110)) #displays transparency for brush
+        screen.blit(comicsans.render(str(alpha)+"%",True,BLACK),(152,120)) #displays transparency for brush
         for b in alphabuttons:
             b.display(screen) #draws buttons
     #----MOUSE HOLD FUNCTIONS----#
@@ -2059,7 +2062,7 @@ while running:
     filler = screen.copy() #copies all updates into filler
     #----Temporary drawings that should never stick to screen (e.g. sprites and toolbits)----#
     #DRAWS TEMPORARY DRAWING BOARD FOR LINES - THIS IS TO SUPPORT TRANSPARENCY
-    if mb[0] or mb[2]:
+    if mb[0] or mb[2] or len(shapetool.points) > 0:
         screen.blit(tempdraw,(0,0))
     #DRAWS GRADIENT SELECTOR SELECTED LINE
     gradsel.drawSel(screen)
