@@ -40,19 +40,20 @@ song = 0 #which song are we playing
 screen.blit(image.load("images/LoadScreen2.png"),(0,0)) #second loading screen - means music is loaded and loading is almost done
 display.flip()
 #COLOR
-WHITE = (255,255,255)
-BLACK = (0,0,0)
-LIGHT_GREY = (180,180,180)
-DARK_GREY = (50,50,50)
-GREY = (100,100,100)
-PINK = (255,150,150)
-RED = (255,0,0)
-BLOODRED = (220,0,0)
-BLUE = (0,0,255)
-GREEN = (0,255,0)
-YELLOW = (255,255,0)
-CYAN = (0,255,255)
-MAGENTA = (255,0,255)
+WHITE = (255,255,255,255)
+BLACK = (0,0,0,255)
+LIGHT_GREY = (180,180,180,255)
+DARK_GREY = (50,50,50,255)
+GREY = (100,100,100,255)
+PINK = (255,150,150,255)
+RED = (255,0,0,255)
+BLOODRED = (220,0,0,255)
+BLUE = (0,0,255,255)
+GREEN = (0,255,0,255)
+YELLOW = (255,255,0,255)
+CYAN = (0,255,255,255)
+MAGENTA = (255,0,255,255)
+alpha = 100 #alpha %
 #FONTS
 comicsans = font.SysFont("comicsansms", 15)
 arial = font.SysFont("arial",15)
@@ -275,8 +276,10 @@ class GradSel():
         self.selected = mx-self.x #sets selected to mousex - self.x as that would be the location of color relative to box
         if self.clicked:
             rcol = screen.get_at((self.x+self.selected,self.y)) #right click sets right mouse button
+            rcol = Color(rcol[0],rcol[1],rcol[2],int(alpha/100*255))#sets transparency
         else:
             lcol = screen.get_at((self.x+self.selected,self.y)) #left click sets left mouse button
+            lcol = Color(lcol[0],lcol[1],lcol[2],int(alpha/100*255))#sets transparency
     def mouseup(self,screen):
         self.clicked = -1
         self.selected = self.width//2
@@ -333,7 +336,8 @@ class volSlider():
         mx,my = mouse.get_pos()
         #while mouse is being held on volume slider
         self.place = ((self.y+self.sliderheight+5) - min(max(self.y+5,my),self.y+self.sliderheight+5))/self.sliderheight
-        music[song].set_volume(self.place)
+        for m in music:
+            m.set_volume(self.place) #sets all the music to a volume
     def draw(self,screen):
         #draws volume indicator box on top
         draw.rect(screen,WHITE,(self.x,self.y-40,self.width,40))
@@ -364,7 +368,8 @@ class Tool():
         pass
     def mouseup(self,screen):
         #if mouse is raised
-        pass
+        screen.blit(tempdraw,(0,0)) #blits tempdraw
+        tempdraw.fill((255,255,255,0))#clears temporary drawing board
     def scroll(self,screen,forward=True):
         #scrolling function of tool
         pass
@@ -410,7 +415,7 @@ class Pencil(Tool):
         elif mb[2]:
             global rcol
             self.col = rcol
-        draw.line(screen,self.col,(self.sx,self.sy),(mx,my))
+        draw.line(tempdraw,self.col,(self.sx,self.sy),(mx,my))
         self.sx = mx
         self.sy = my #changes the sx and sy to mx and my to keep make it follow the mouse
     def outside(self):
@@ -495,7 +500,6 @@ class Brush(Tool):
         self.sx = mx #starting coords for lines drawn with this tool
         self.sy = my
         self.size = 10 #size of brush
-        self.alpha = 100 #alpha value of brush (in %)
         self.col = lcol #color of brush
     def lclick(self,screen):
         #changes sx and sy to be where mouse is
@@ -533,14 +537,11 @@ class Brush(Tool):
             dist = max(1,dist) #makes sure distance isn't 0 so division by 0 doesn't occur
             lx = (mx-self.sx)/dist #increment of x and y values of the line
             ly = (my-self.sy)/dist
-            color = (self.col[0],self.col[1],self.col[2],int(self.alpha/100*255))          
-            tempdraw = Surface((self.size*2,self.size*2),SRCALPHA)
-            draw.circle(tempdraw,color,(self.size,self.size),self.size)
             for i in range(int(dist)):
-                screen.blit(tempdraw,(int(self.sx+lx*i)-self.size,int(self.sy+ly*i)-self.size))
+                draw.circle(tempdraw,self.col,(int(self.sx+lx*i),int(self.sy+ly*i)),self.size)
         else:
             #draws a simple line
-            draw.line(screen,self.col,(self.sx,self.sy),(mx,my))
+            draw.line(tempdraw,self.col,(self.sx,self.sy),(mx,my))
         self.sx = mx
         self.sy = my
     def outside(self):
@@ -558,9 +559,9 @@ class Brush(Tool):
         else:
             self.col = lcol
         if self.size > 0:          
-            tempdraw = Surface((self.size*2,self.size*2),SRCALPHA)
-            draw.circle(tempdraw,(self.col[0],self.col[1],self.col[2],int(self.alpha/100*255)),(self.size,self.size),self.size) #draws circle to show user how big brush is
-            screen.blit(tempdraw,(mx-self.size,my-self.size))
+            tempdraw2 = Surface((self.size*2,self.size*2),SRCALPHA)
+            draw.circle(tempdraw2,(self.col),(self.size,self.size),self.size) #draws circle to show user how big brush is
+            screen.blit(tempdraw2,(mx-self.size,my-self.size))
         else:
             screen.set_at((mx,my),self.col)
         screen.blit(self.icon,(mx,my-40))
@@ -586,15 +587,13 @@ class Line(Tool):
         self.col = lcol #changes color to left mouse color
         self.sx = mx #changes starting point of line to where user clicked
         self.sy = my
-        cfiller = screen.copy().subsurface(canvas) #sets the canvas filler to be what the user was when they clicked
     def rclick(self,screen):
         global rcol
         self.lclick(screen) #changes color to right mouse color, the rest is the same as left click
         self.col = rcol
     def cont(self,screen):
-        global cfiller
+        tempdraw.fill((255,255,255,0)) #clears tempdraw
         #same algorithm as brush tool
-        screen.blit(cfiller,(300,50))
         mx,my = mouse.get_pos()
         if self.size > 0:
             #line algorithm
@@ -603,10 +602,10 @@ class Line(Tool):
             lx = (mx-self.sx)/dist #increment of x and y values of the line
             ly = (my-self.sy)/dist
             for i in range(int(dist)):
-                draw.circle(screen,self.col,(int(self.sx+lx*i),int(self.sy+ly*i)),self.size)
+                draw.circle(tempdraw,self.col,(int(self.sx+lx*i),int(self.sy+ly*i)),self.size)
         else:
             #draws a simple line
-            draw.line(screen,self.col,(self.sx,self.sy),(mx,my))
+            draw.line(tempdraw,self.col,(self.sx,self.sy),(mx,my))
     def scroll(self,screen,forward=True):
         if forward:
             #makes line size smaller and limits it at 1
@@ -649,10 +648,12 @@ class Selector(Tool):
         global lcol
         mx,my = mouse.get_pos()
         lcol = screen.get_at((mx,my))
+        lcol = Color(lcol[0],lcol[1],lcol[2],int(alpha/100*255))#sets transparency
     def rclick(self,screen):
         global rcol
         mx,my = mouse.get_pos()
         rcol = screen.get_at((mx,my))
+        rcol = Color(rcol[0],rcol[1],rcol[2],int(alpha/100*255))#sets transparency
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
         screen.blit(self.icon,(mx-40,my-40))
@@ -799,7 +800,8 @@ class Select(Tool):
         self.hasmenu = False #has the tool a menu set?
         self.menux,self.menuy = 0,0 #menu position
         self.menu = [Button("save",timesnr.render("Save selected area as...",True,BLACK),self.menux,self.menuy,"",200,20),
-                    Button("copy",timesnr.render("Copy",True,BLACK),self.menux,self.menuy+20,"",200,20)] #menu
+                    Button("copy",timesnr.render("Copy",True,BLACK),self.menux,self.menuy+20,"",200,20),
+                    Button("cut",timesnr.render("Cut",True,BLACK),self.menux,self.menuy+40,"",200,20)] #menu
         self.menurect = Rect(0,0,200,len(self.menu)*20) #menu rect
         self.hasbox = False #has the tool a selected box set?
         self.forming = False #is the box being formed?
@@ -875,6 +877,8 @@ class Select(Tool):
                 self.menu = [Button("save",timesnr.render("Save selected area as...",True,BLACK),self.menux,self.menuy,"",200,20,
                                     transform.smoothscale(self.selectedbox,(self.width,self.height))),
                              Button("copy",timesnr.render("Copy",True,BLACK),self.menux,self.menuy+20,"",200,20,
+                                    transform.smoothscale(self.selectedbox,(self.width,self.height))),
+                             Button("cut",timesnr.render("Cut",True,BLACK),self.menux,self.menuy+40,"",200,20,
                                     transform.smoothscale(self.selectedbox,(self.width,self.height)))] #re-defines menu
             elif self.hasmenu:
                 if not self.menurect.collidepoint(mx,my):
@@ -980,6 +984,7 @@ class Select(Tool):
         elif kp[K_x] and (kp[K_RCTRL] or kp[K_LCTRL]) and self.hasbox:
             #cuts box onto clipboard
             self.hasbox = False
+            self.hasmenu = False
             boxcp = (transform.smoothscale(self.selectedbox,(self.width,self.height)),(self.x,self.y)) #sets the clipboard's image and coordinates
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
@@ -1019,7 +1024,7 @@ class Spray(Tool):
                 randw = randint(-self.size,self.size) #random width and height
                 randh = randint(-self.size,self.size)
                 if hypot(randw,randh) <= self.size:
-                    screen.set_at((int(self.sx+lx*i+randw),int(self.sy+ly*i+randh)),self.col) #random spray
+                    tempdraw.set_at((int(self.sx+lx*i+randw),int(self.sy+ly*i+randh)),self.col) #random spray
         self.sx,self.sy = mx,my
     def scroll(self,screen,forward=True):
         if forward:
@@ -1065,7 +1070,7 @@ class Shape(Tool):
                 self.col = rcol if mouse.get_pressed()[2] else lcol #sets color if there are no current points (first press)
             self.points.append((mx,my)) #adds point to points
             if self.width > 1:
-                draw.circle(screen,self.col,(mx,my),self.width//2) #draws a circle of the same width as the border
+                draw.circle(tempdraw,self.col,(mx,my),self.width//2) #draws a circle of the same width as the border
             screen.set_at((mx,my),self.col) #sets point to color currently at
             if len(self.points) > 1:
                 #line algorithm if the width is greater than 1
@@ -1076,10 +1081,10 @@ class Shape(Tool):
                     lx = (x2-x1)/dist #little x to increment circles by
                     ly = (y2-y1)/dist #little y to increment circles by
                     for i in range(int(dist)):
-                        draw.circle(screen,self.col,(int(x1+lx*i),int(y1+ly*i)),self.width//2)
+                        draw.circle(tempdraw,self.col,(int(x1+lx*i),int(y1+ly*i)),self.width//2)
                 else:
                     #simply draws a line if width is less than 2
-                    draw.line(screen,self.col,self.points[-2],self.points[-1])
+                    draw.line(tempdraw,self.col,self.points[-2],self.points[-1])
             return 0 #returns so that it does not run preceding code
         #----Other shapes----#
         cfiller = screen.copy().subsurface(canvas) #sets cfiller to be canvas before click
@@ -1095,9 +1100,9 @@ class Shape(Tool):
                 self.points = [] #resets points if length of points is <=2 as we cannot make a polygon from 2 or less points
                 return 0
             if self.width == 0:
-                draw.polygon(screen,self.col,self.points,self.width) #draws the polygon
+                draw.polygon(tempdraw,self.col,self.points,self.width) #draws the polygon
             else:
-                draw.line(screen,self.col,self.points[-1],self.points[0],self.width) #completes the polygon if it's bordered and not filled
+                draw.line(tempdraw,self.col,self.points[-1],self.points[0],self.width) #completes the polygon if it's bordered and not filled
             self.points = [] #clears points
             return 0
         #----Other shapes----#
@@ -1140,18 +1145,18 @@ class Shape(Tool):
         if self.shape == "polygon":
             return 0 #does nothing if shape is a polygon
         mx,my = mouse.get_pos()
-        screen.blit(cfiller,(300,50))
+        tempdraw.fill((255,255,255,0)) #clears tempdraw
         if self.shape == "rect":
             sx = min(self.sx,mx) #sx becomes smaller of startx and mouse-x
             sy = min(self.sy,my) #same idea as sx
             if self.width == 0:
-                draw.rect(screen,self.col,(sx,sy,abs(self.sx-mx),abs(self.sy-my)))
+                draw.rect(tempdraw,self.col,(sx,sy,abs(self.sx-mx),abs(self.sy-my)))
             else:
                 #draws 4 lines if it doesn't fill the rect
-                draw.line(screen,self.col,(sx-self.width/2+1,sy),(sx+abs(self.sx-mx)+self.width/2,sy),self.width)
-                draw.line(screen,self.col,(sx,sy),(sx,sy+abs(self.sy-my)),self.width)
-                draw.line(screen,self.col,(sx+abs(self.sx-mx),sy),(sx+abs(self.sx-mx),sy+abs(self.sy-my)),self.width)
-                draw.line(screen,self.col,(sx-self.width/2+1,sy+abs(self.sy-my)),(sx+abs(self.sx-mx)+self.width/2,sy+abs(self.sy-my)),self.width)
+                draw.line(tempdraw,self.col,(sx-self.width/2+1,sy),(sx+abs(self.sx-mx)+self.width/2,sy),self.width)
+                draw.line(tempdraw,self.col,(sx,sy),(sx,sy+abs(self.sy-my)),self.width)
+                draw.line(tempdraw,self.col,(sx+abs(self.sx-mx),sy),(sx+abs(self.sx-mx),sy+abs(self.sy-my)),self.width)
+                draw.line(tempdraw,self.col,(sx-self.width/2+1,sy+abs(self.sy-my)),(sx+abs(self.sx-mx)+self.width/2,sy+abs(self.sy-my)),self.width)
         elif self.shape == "ellipse":
             sx = min(self.sx,mx) #sx becomes smaller of startx and mouse-x
             sy = min(self.sy,my) #same idea as sx
@@ -1160,7 +1165,7 @@ class Shape(Tool):
             if self.width != 0 and abs(self.sy-my)-self.width*2 > 0 and abs(self.sx-mx)-self.width*2 > 0:
                 #if the width and height of the centre ellipse is greater than 0 and the ellipse has a border, draws transparent ellipse in the centre to simulate an ellipse with a border
                 draw.ellipse(ellipseSurface,(255,255,255,0),(self.width,self.width,abs(self.sx-mx)-self.width*2,abs(self.sy-my)-self.width*2))
-            screen.blit(ellipseSurface,(sx,sy)) #blits the ellipse surface
+            tempdraw.blit(ellipseSurface,(sx,sy)) #blits the ellipse surface
     def keypress(self,screen,keypressed=""):
         if keypressed == " ":
             self.width = 0 #resets width when space is clicked
@@ -1181,7 +1186,7 @@ class Fill(Tool):
         mx,my = mouse.get_pos()
         self.fcol = lcol #sets fill colour to left mouse colour
         self.ccol = screen.get_at((mx,my)) #sets change colour to where user clicked
-        if self.fcol == self.ccol:
+        if self.fcol[:3] == self.ccol[:3]:
             return 0 #does not run if the change colour is the same as the fill colour
         tochange = set()#set of pixels to change
         tochange.add((mx,my))
@@ -1200,7 +1205,7 @@ class Fill(Tool):
         global rcol
         self.fcol = rcol
         self.ccol = screen.get_at((mx,my)) #sets change colour to where user clicked
-        if self.fcol == self.ccol:
+        if self.fcol[:3] == self.ccol[:3]:
             return 0 #does not run if the change colour is the same as the fill colour
         tochange = set()#set of pixels to change
         tochange.add((mx,my))
@@ -1386,6 +1391,7 @@ class Button():
         global undo_mem
         global redo_mem
         global boxcp
+        global alpha
         if issubclass(type(self.func),Tool):
             #tool change button
             currtool = self.func
@@ -1427,8 +1433,10 @@ class Button():
             mb = mouse.get_pressed()
             if mb[0]:
                 lcol = self.arg2
+                lcol = Color(lcol[0],lcol[1],lcol[2],int(alpha/100*255))#sets transparency
             elif mb[2]:
                 rcol = self.arg2
+                rcol = Color(rcol[0],rcol[1],rcol[2],int(alpha/100*255))#sets transparency
         elif self.func == "save":
             #save function
             if type(currtool) == Select:
@@ -1502,13 +1510,18 @@ class Button():
             undo_mem.append(screen.copy().subsurface(canvas))
             redo_mem = [] #adds to undo list undo_memory and deletes all of redo list undo_memory
             draw.rect(screen,WHITE,canvas) #fills canvas white
-        elif self.func == "copy":
+        elif self.func in ["copy","cut"]:
             #copy button
+            if self.func == "cut":
+                selectool.hasbox = False #turns of box in selectool
+            selectool.hasmenu = False #turns off menu
             boxcp = (self.arg2,(300,50)) #sets clipboard to copied object
         elif self.func == "alpha":
             #alpha% scale button
-            brushtool.alpha += self.arg2 #changes alpha value of brushtool
-            brushtool.alpha = min(max(0,brushtool.alpha),100) #limits brushtool alpha% to be from 0 - 100
+            alpha += self.arg2 #changes alpha value of colors
+            alpha = min(max(0,alpha),100) #limits alpha% to be from 0 - 100
+            lcol = Color(lcol[0],lcol[1],lcol[2],int((alpha/100)*255)) #sets lcol and rcol
+            rcol = Color(rcol[0],rcol[1],rcol[2],int((alpha/100)*255))
     def disptoolbit(self,screen):
         #displays the toolbit so that user can know what button's tool does
         global comicsans
@@ -1584,9 +1597,9 @@ fontsizebuttons = [Button("fontsize",comicsans.render(" -",True,BLACK),114,432,"
 #shape width buttons
 shapewidthbuttons = [Button("shapewidth",comicsans.render(" -",True,BLACK),114,432,"Change width",20,20,-1),
                    Button("shapewidth",comicsans.render(" +",True,BLACK),250,432,"Change width",20,20,1)]
-#brush alpha buttons
-brushalphabuttons = [Button("alpha",comicsans.render(" -",True,BLACK),114,422,"Change alpha value",20,20,-1),
-                     Button("alpha",comicsans.render(" +",True,BLACK),250,422,"Change alpha value",20,20,1)]
+#alpha buttons
+alphabuttons = [Button("alpha",comicsans.render(" -",True,BLACK),140,100,"Change alpha value",20,20,-1),
+                     Button("alpha",comicsans.render(" +",True,BLACK),276,100,"Change alpha value",20,20,1)]
 #----TOOL VARIABLES----#
 currtool = penciltool #current tool
 #buttons of all tools user can press (as well as other buttons such as save and open)
@@ -1678,10 +1691,14 @@ keytimer = 0 #timer for key pressed - allows for key holding
 keypressed = "" #key pressed by user
 #----VOLUME SLIDER----#
 volslide = volSlider(1150,640,50,100)
+#----TEMPORARY DRAWING BOARD----#
+#-for transparency support
+tempdraw = Surface((screen.get_width(),screen.get_height()),SRCALPHA)
+tempdraw.set_clip(canvas) #clips temp draw
 #----other important variables----#
 lastclick = "" #keeps track of last click
 filler = screen.copy() #screen filler - used for mouse sprites and toolbits and other temporary pop-ups
-toolboxfiller = screen.subsurface(Rect(20,100,270,500)).copy() #tool box
+toolboxfiller = screen.subsurface(Rect(20,90,278,510)).copy() #tool box
 undo_mem = [] #undo_memory for previous saves for the undo function
 redo_mem = [] #redo_memory for saves removed by the undo function for the redo function
 boxcp = None #clipboard for boxes (created by the select tool)
@@ -1753,6 +1770,10 @@ while running:
                     #makes sure nothing happens if the use uses middle click
                     continue
                 lastclick = "" #set last click to "" (which means everything except canvas, drop down boxes and palette)
+                #checks if we clicked volume slider
+                if volslide.istouch():
+                    lastclick = "volslide"
+                    continue
                 #following loop checks for tools/buttons and if we clicked them or not
                 if currtool == textool:
                     for b in fontsizebuttons:
@@ -1770,10 +1791,10 @@ while running:
                             mousetimer = time() #sets time clicked and button held
                             lastclick = "bordersize"
                             break
-                if currtool == brushtool:
-                    for b in brushalphabuttons:
+                if currtool in [penciltool,brushtool,spraytool,shapetool,linetool]:
+                    for b in alphabuttons:
                         if b.istouch():
-                            lastclick = "brushalphabutton"
+                            lastclick = "alphabutton"
                             buttonheld = b
                             mousetimer = time() #sets time clicked and button held
                             b.clickon(screen)
@@ -1795,7 +1816,7 @@ while running:
                 for t in tools:
                     if t.istouch():
                         if t.func != currtool:
-                            screen.blit(toolboxfiller,(20,100)) #blits toolbox when user changes tools
+                            screen.blit(toolboxfiller,(20,90)) #blits toolbox when user changes tools
                             #tool button clicked
                             if e.button == 3:
                                 #handles right clicking on button
@@ -1950,9 +1971,6 @@ while running:
     if currtool == shapetool:
         for b in shapewidthbuttons:
             b.display(screen)
-    if currtool == brushtool:
-        for b in brushalphabuttons:
-            b.display(screen)
     #----SIZE INDICATORS AND CHANGERS----#
     if currtool == textool:
         draw.rect(screen,WHITE,(134,432,116,20))
@@ -1961,12 +1979,16 @@ while running:
         draw.rect(screen,WHITE,(134,432,116,20))
         dispwidth = "Border size: "+str(shapetool.width) if shapetool.width > 0 else "No border (fill)"
         screen.blit(comicsans.render(dispwidth,True,BLACK),(134,432)) #displays width of shapetool for shape tool
-    elif currtool == brushtool:
-        draw.rect(screen,WHITE,(134,412,116,40))
+    #----TRANSPARENCY INDICATOR----#
+    if currtool in [penciltool,brushtool,spraytool,shapetool,linetool]:
+        #displays transparency if transparency is available for tool
+        draw.rect(screen,WHITE,(160,90,116,40))
         comicsans.set_bold(True)
-        screen.blit(comicsans.render("Transparency",True,BLACK),(134,412))
+        screen.blit(comicsans.render("Opacity",True,BLACK),(160,90))
         comicsans.set_bold(False)
-        screen.blit(comicsans.render(str(brushtool.alpha)+"%",True,BLACK),(134,432)) #displays transparency for brush
+        screen.blit(comicsans.render(str(alpha)+"%",True,BLACK),(160,110)) #displays transparency for brush
+        for b in alphabuttons:
+            b.display(screen) #draws buttons
     #----MOUSE HOLD FUNCTIONS----#
     mb = mouse.get_pressed()
     mx,my = mouse.get_pos()
@@ -1985,17 +2007,19 @@ while running:
                     if buttonheld.istouch():
                         buttonheld.clickon(screen)
             if palrect.collidepoint(mx,my) and lastclick == "palette":
-                #if user clicked in palette, the following if statements will change the color of either his left mouse or his right mouse button
+                #if user clicked in palette, the following if statements will change the color of either his/her left mouse or his right mouse button
                 if mb[0]:
                     lcol = screen.get_at((mx,my))
+                    lcol = Color(lcol[0],lcol[1],lcol[2],int(alpha/100*255))#sets transparency
                     pspot1 = (mx,my) #changes position of left-mouse circle on canvas
                 elif mb[2]:
                     rcol = screen.get_at((mx,my))
+                    rcol = Color(rcol[0],rcol[1],rcol[2],int(alpha/100*255))#sets transparency
                     pspot2 = (mx,my) #changes position of right-mouse circle on canvas
             elif gradsel.istouch() and lastclick == "gradsel":
                 #gradient selector mouse hold
                 gradsel.cont(screen)
-            elif volslide.istouch():
+            elif volslide.istouch() and lastclick == "volslide":
                 #volume slider mouse hold
                 volslide.cont(screen)
     elif mb[1]:
@@ -2034,6 +2058,9 @@ while running:
     #----SCREEN SAVING----#  
     filler = screen.copy() #copies all updates into filler
     #----Temporary drawings that should never stick to screen (e.g. sprites and toolbits)----#
+    #DRAWS TEMPORARY DRAWING BOARD FOR LINES - THIS IS TO SUPPORT TRANSPARENCY
+    if mb[0] or mb[2]:
+        screen.blit(tempdraw,(0,0))
     #DRAWS GRADIENT SELECTOR SELECTED LINE
     gradsel.drawSel(screen)
     #DRAWS VOLUME SLIDER
@@ -2046,6 +2073,12 @@ while running:
     screen.blit(comicsans.render(currtool.__class__.__name__+" tool",True,BLACK),(30,412)) #blits tools' class name
     if currtool == shapetool:
         screen.blit(comicsans.render(shapetool.shape.title(),True,BLACK),(30,427)) #blits shape tool's shape
+    if type(currtool) == Stamp:
+        #if the tool is a stamp labels dimensions
+        if mb[2]:
+            screen.blit(comicsans.render(str(currtool.width2)+"px x "+str(currtool.height2)+"px",True,RED),(30,427))
+        else:
+            screen.blit(comicsans.render(str(currtool.width)+"px x "+str(currtool.height)+"px",True,BLACK),(30,427))
     try:
         #tries to draw size of tool - this will only work for tools with size attribute
         size = 1 if currtool.size == 0 else currtool.size*2 #sets the size of the tool
