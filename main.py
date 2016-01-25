@@ -37,8 +37,6 @@ mixer.Sound("music/BoukenDesho.ogg")
 shuffle(music) #shuffles the music
 music[0].play()
 song = 0 #which song are we playing
-screen.blit(image.load("images/LoadScreen2.png"),(0,0)) #second loading screen - means music is loaded and loading is almost done
-display.flip()
 #COLOR
 WHITE = (255,255,255,255)
 BLACK = (0,0,0,255)
@@ -102,7 +100,21 @@ genocidersyo = image.load("images/genocidersyo.png")
 ryokoface = transform.smoothscale(image.load("images/ryokoface.png"),(50,50))
 ryokoasakura = image.load("images/ryokoasakura.png")
 yandereryoko = image.load("images/yandereryoko.png")
+yukkiface = transform.smoothscale(image.load('images/yukkiface.png'),(50,50))
+yukiteruamano = image.load("images/yukiteruamano.png")
+makotoface = transform.smoothscale(image.load("images/makotoface.png"),(50,50))
+makotoitou = image.load("images/makotoitou.png")
+koutaface = transform.smoothscale(image.load("images/koutaface.png"),(50,50))
+kouta = image.load("images/kouta.png")
+shuface = transform.smoothscale(image.load("images/shuface.png"),(50,50))
+shuouma = image.load("images/shuouma.png")
+byakuyaface = transform.smoothscale(image.load("images/byakuyaface.png"),(50,50))
+byakuyatogami = image.load("images/byakuyatogami.png")
+yukiface = transform.smoothscale(image.load("images/yukiface.png"),(50,50))
+yukinagato = image.load("images/yukinagato.png")
 redarrow = transform.scale(image.load("images/RedArrowDown.png"),(30,30))
+screen.blit(image.load("images/LoadScreen2.png"),(0,0)) #second loading screen - means music is loaded and loading is almost done
+display.flip()
 #Finalizes Screen
 screen.blit(image.load("images/background.png"),(0,0))
 running = True
@@ -1461,6 +1473,8 @@ class Button():
         global redo_mem
         global boxcp
         global alpha
+        global stampage
+        global tools
         if issubclass(type(self.func),Tool):
             #tool change button
             currtool = self.func
@@ -1595,6 +1609,12 @@ class Button():
             alpha = min(max(0,alpha),100) #limits alpha% to be from 0 - 100
             lcol = Color(lcol[0],lcol[1],lcol[2],int((alpha/100)*255)) #sets lcol and rcol
             rcol = Color(rcol[0],rcol[1],rcol[2],int((alpha/100)*255))
+        elif self.func == "stampchange":
+            #stamp change button
+            stampage += self.arg2
+            stampage = max(min(stampage,len(stamps)-1),0) #Limits stamp page at 0 ~ len(stamps)-1
+            del tools[-6:]
+            tools += stamps[stampage] #sets new stamps in tools
     def disptoolbit(self,screen):
         #displays the toolbit so that user can know what button's tool does
         global comicsans
@@ -1609,7 +1629,7 @@ class Button():
             smallfont = font.SysFont("comicsansms",10) #small font
             screen.blit(smallfont.render("RIGHT CLICK ON CANVAS FOR YANDERE VERSION",True,BLOODRED),(mx+5,my-30))
             screen.blit(smallfont.render("[Scroll to change size, space to reset size]",True,BLOODRED),(mx+5,my-17))
-        elif self.func in [linetool,brushtool,erasertool,spraytool]:
+        elif self.func in [linetool,brushtool,erasertool,spraytool] or type(self.func) == Stamp:
             #if it's a resizable and space resettable tool we still add an extra line
             smallfont = font.SysFont("comicsansms",10) #small font
             width = max(width,smallfont.render("[Scroll to change size, space to reset size]",True,BLOODRED).get_width()+20)
@@ -1643,12 +1663,20 @@ spraytool = Spray() #spray tool
 filltool = Fill() #fill tool
 blurtool = Blur() #blur tool
 #stamps
+#--page1
 yunostamp = Stamp(yunogasai,yandereyuno) #Yuno Gasai stamp
 kotonohastamp = Stamp(kotonohakatsura,yanderekotonoha) #Kotonoha Katsura stamp
 lucystamp = Stamp(lucy,yanderelucy) #Lucy stamp
 inoristamp = Stamp(inoriyuzuriha,yandereinori) #Inori Yuzuriha stamp
 tokostamp = Stamp(tokofukawa,genocidersyo) #Toko Fukawa stamp
 ryokostamp = Stamp(ryokoasakura,yandereryoko) #Ryoko Asakura stamp
+#--page2
+yukkistamp = Stamp(yukiteruamano) #Yukiteru Amano stamp
+makotostamp = Stamp(makotoitou) #Makoto Itou stamp
+koutastamp = Stamp(kouta) #Kouta stamp
+shustamp = Stamp(shuouma) #Shu Ouma stamp
+byakuyastamp = Stamp(byakuyatogami) #Byakuya Togami stamp
+yukistamp = Stamp(yukinagato) #Yuki Nagato stamp
 #DROP DOWN BOXES
 #drop down box for fonts
 fontdropdown = DropDownBox(114,412,[Button("font",comicsans.render("Comic Sans MS",True,BLACK),114,432,"Change Font-Family",136,20,"comicsansms"),
@@ -1702,7 +1730,16 @@ stamps = [[Button(yunostamp,yunoface,600,690,"Paste the cute yet scary Yuno Gasa
          Button(lucystamp,lucyface,720,690,"Paste the pretty yet ruthless Lucy, who has an amnesiac alter-ego known as Nyu",50,50),
          Button(inoristamp,inoriface,780,690,"Paste the quiet yet deadly Inori Yuzuriha, in whom the crazy Mana Ouma lives",50,50),
          Button(tokostamp,tokoface,840,690,"Paste the antisocial but sadistic Toko Fukawa, who has an alter-ego called Genocider Syo",50,50),
-         Button(ryokostamp,ryokoface,900,690,"Paste the apparently cheerful but emotionless Ryoko Asakura, who'll use violence to achieve her goals",50,50)]]
+         Button(ryokostamp,ryokoface,900,690,"Paste the apparently cheerful but emotionless Ryoko Asakura, who'll use violence to achieve her goals",50,50)],
+          [Button(yukkistamp,yukkiface,600,690,"Paste Yukiteru Amano - a wimpy boy who's the obsession of Yuno Gasai",50,50),
+         Button(makotostamp,makotoface,660,690,"Paste Makoto Itou - a dumb boy who disrespects girls; Kotonoha Katsura's object of deadication",50,50),
+         Button(koutastamp,koutaface,720,690,"Paste Kouta - a nice boy who is both Lucy's victim and crush",50,50),
+         Button(shustamp,shuface,780,690,"Paste Shu Ouma - an average boy who gains a great power, and who Inori Yuzuriha loves",50,50),
+         Button(byakuyastamp,byakuyaface,840,690,"Paste Byakuya Togami - a rich boy who looks down on others and is stalked by Toko Fukawa",50,50),
+         Button(yukistamp,yukiface,900,690,"Paste Yuki Nagato - a taciturn girl who Ryoko Asakura will do ANYTHING to protect",50,50)]]
+#stamp change buttons - for changing stamp pages
+stampchangebuttons = [Button("stampchange",comicsans.render(" <",True,BLACK),840,670,"Stamp page forward",20,20,-1),
+                      Button("stampchange",comicsans.render(" >",True,BLACK),930,670,"Stamp page backward",20,20,1)]
 stampage = 0 #which stamp page are we on
 tools += stamps[0] #adds the first page of stamps to tools
 #----CANVAS----#
@@ -1891,6 +1928,11 @@ while running:
                         lastclick = "mousebutton"
                         b.clickon(screen)
                         break
+                for b in stampchangebuttons:
+                    if b.istouch():
+                        lastclick = "stampchange"
+                        b.clickon(screen)
+                        break
                 screen.set_clip(canvas)
                 currtool.outside() #runs current tool's outside function, as user clicked outside of canvas
                 screen.set_clip(None)
@@ -2056,6 +2098,12 @@ while running:
     if currtool == shapetool:
         for b in shapewidthbuttons:
             b.display(screen)
+    #----STAMP CHANGER----#
+    for b in stampchangebuttons:
+        b.display(screen)#displays stamp change buttons
+    draw.rect(screen,WHITE,(860,670,70,20)) #drawing background for stamp page indicator
+    draw.rect(screen,BLACK,(860,670,70,20),1)
+    screen.blit(comicsans.render("Page "+str(stampage+1)+"/"+str(len(stamps)),True,BLACK),(861,670)) #blits page indicator
     #----SIZE INDICATORS AND CHANGERS----#
     if currtool == textool:
         draw.rect(screen,WHITE,(134,432,116,20))
