@@ -130,7 +130,11 @@ class Textbox():
             self.col = col #sets color
         self.fontfamily = fontfamily #sets fontfamily
         self.fontsize = fontsize #sets fontsize
+        decor = (("bold",self.tbfont.get_bold()),("italic",self.tbfont.get_italic()),("underline",self.tbfont.get_underline())) #tuple of text decor
         self.tbfont = font.SysFont(fontfamily,self.fontsize)
+        for t,d in decor:
+            if d:
+                exec("self.tbfont.set_"+t+"(True)")
     def writeto(self,char):
         #writes a character in the box
         if char == "":
@@ -181,7 +185,7 @@ class Textbox():
             #if it isn't permanent drawing
             #draws a box to fit the text of the text box drawn by the text tool
             draw.rect(screen,self.col,(self.x-2,self.y-2,self.width+4,self.height+4),2)
-            #draws insertion point if time is at the right interval (mimics flashing effect)
+            #draws insertion point if time is at the right interval (causes blinking effect)
             if time() % 0.9 < 0.45:
                 draw.line(screen,self.col,
                           (self.x+self.tbfont.render(self.text[self.irow][:self.icol],True,BLACK).get_width(),self.y+self.tbfont.render(self.text[-1],True,BLACK).get_height()*self.irow),
@@ -423,6 +427,9 @@ class Pencil(Tool):
         global lastclick
         if lastclick == "canvas":
             self.cont(screen)
+        else:
+            screen.blit(tempdraw,(0,0)) #blits tempdraw
+            tempdraw.fill((255,255,255,0)) #clears tempdraw
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
         screen.blit(self.icon,(mx,my-40))
@@ -549,6 +556,9 @@ class Brush(Tool):
         global lastclick
         if lastclick == "canvas":
             self.cont(screen)
+        else:
+            screen.blit(tempdraw,(0,0)) #blits tempdraw
+            tempdraw.fill((255,255,255,0)) #clears tempdraw
     def drawsprite(self,screen):
         global lcol
         global rcol
@@ -583,6 +593,7 @@ class Line(Tool):
         global lcol
         global cfiller
         global canvas
+        screen.blit(tempdraw,(0,0)) #blits temporary drawing board
         mx,my = mouse.get_pos()
         self.col = lcol #changes color to left mouse color
         self.sx = mx #changes starting point of line to where user clicked
@@ -620,6 +631,14 @@ class Line(Tool):
         global lastclick
         if lastclick == "canvas":
             self.cont(screen)
+        else:
+            screen.blit(tempdraw,(0,0)) #blits temporary drawing board
+            tempdraw.fill((255,255,255,0)) #clears temporary drawing board
+    def mouseup(self,screen):
+        #same but checks if mouse is held first
+        mb = mouse.get_pressed()
+        if not mb[0] and not mb[2]:
+            super(Line,self).mouseup(screen) #calls super mouseup
     def drawsprite(self,screen):
         global lcol
         global rcol
@@ -684,7 +703,11 @@ class Text(Tool):
                 self.dx,self.dy = 0,0
         else:
             #draws a text box if we don't have one
-            self.textbox = Textbox(mx,my,20,20,self.fontfamily,self.fontsize,lcol)
+            decor = (("bold",self.textbox.tbfont.get_bold()),("italic",self.textbox.tbfont.get_italic()),("underline",self.textbox.tbfont.get_underline())) #tuple of text decor
+            self.textbox = Textbox(mx,my,20,20,self.textbox.fontfamily,self.textbox.fontsize,lcol)
+            for t,d in decor:
+                if d:
+                    exec("self.textbox.tbfont.set_"+t+"(True)")
             self.hastextbox = True
     def rclick(self,screen):
         #literally the same thing as lclick, but with rcol instead of lcol
@@ -701,7 +724,11 @@ class Text(Tool):
                 self.dx,self.dy = 0,0
         else:
             #draws a text box if we don't have one
-            self.textbox = Textbox(mx,my,20,20,self.fontfamily,self.fontsize,rcol)
+            decor = (("bold",self.textbox.tbfont.get_bold()),("italic",self.textbox.tbfont.get_italic()),("underline",self.textbox.tbfont.get_underline())) #tuple of text decor
+            self.textbox = Textbox(mx,my,20,20,self.textbox.fontfamily,self.textbox.fontsize,rcol)
+            for t,d in decor:
+                if d:
+                    exec("self.textbox.tbfont.set_"+t+"(True)")
             self.hastextbox = True
     def cont(self,screen):
         #drags the textbox if the mouse is down on canvas
@@ -775,11 +802,11 @@ class Text(Tool):
         global screen
         global lcol
         global rcol
-        if self.hastextbox and lastclick not in ["fontdropdown","fontsize","palbutton","palette","mousebutton","canvas","gradsel"]:
+        if self.hastextbox and lastclick not in ["fontdropdown","fontsize","palbutton","palette","mousebutton","canvas","gradsel","fontdecor"]:
             self.hastextbox = False
             currtool.textbox.drawtext(screen)
         else:
-            #changes dimensions
+            #changes dimensions and updates font
             mb = mouse.get_pressed()
             if lastclick in ["palbutton","palette","mousebutton","gradsel"]:
                 #changes color
@@ -806,6 +833,7 @@ class Select(Tool):
                     Button("copy",timesnr.render("Copy",True,BLACK),self.menux,self.menuy+20,"",200,20),
                     Button("cut",timesnr.render("Cut",True,BLACK),self.menux,self.menuy+40,"",200,20)] #menu
         self.menurect = Rect(0,0,200,len(self.menu)*20) #menu rect
+        self.fromshape = False #did the selectool come as a result of a shape?
         self.hasbox = False #has the tool a selected box set?
         self.forming = False #is the box being formed?
         self.selectedbox = None #selected box by shape
@@ -818,6 +846,7 @@ class Select(Tool):
     def lclick(self,screen):
         global cfiller
         global canvas
+        global currtool
         mx,my = mouse.get_pos()
         self.clicked = 0
         if self.hasmenu:
@@ -854,9 +883,11 @@ class Select(Tool):
                     self.selectedbox = transform.smoothscale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
                 except:
                     self.selectedbox = transform.scale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
-                screen.blit(cfiller,(300,50))
                 self.hasbox = False
                 screen.blit(self.selectedbox,(self.x,self.y)) #blits the selected box permanently
+                if self.fromshape:
+                    currtool = shapetool #sets currtool to shapetool if it's from shape
+                    self.fromshape = False
             else:
                 #if user did not try to change size we move the box
                 self.dx = mx-self.x
@@ -869,6 +900,7 @@ class Select(Tool):
     def rclick(self,screen):
         global cfiller
         global canvas
+        global currtool
         mx,my = mouse.get_pos()
         self.clicked = 1
         if self.hasbox:
@@ -899,9 +931,11 @@ class Select(Tool):
                         self.selectedbox = transform.smoothscale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
                     except:
                         self.selectedbox = transform.scale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
-                    screen.blit(cfiller,(canvas[0],canvas[1]))
                     self.hasbox = False
                     screen.blit(self.selectedbox,(self.x,self.y)) #blits the selected box permanently
+                    if self.fromshape:
+                        currtool = shapetool #sets currtool to shapetool if it's from shape
+                        self.fromshape = False
         else:
             #if there exists no box, we make one
             cfiller = screen.copy().subsurface(canvas) #makes cfiller canvas before the click
@@ -960,19 +994,18 @@ class Select(Tool):
         global screen
         global cfiller
         global lastclick
+        global currtool
         if self.hasbox and lastclick != "canvas":
             #if the last click was not the canvas we turn off the tool
             try:
                 self.selectedbox = transform.smoothscale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
             except:
                 self.selectedbox = transform.scale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
-            screen.blit(cfiller,(300,50))
             self.hasbox = False
-            print(self.x,self.y)
             screen.blit(self.selectedbox,(self.x,self.y))
-        elif self.hasbox:
-            #if the last click was the canvas, we ignore it
-            pass
+            if self.fromshape:
+                currtool = shapetool #sets currtool to shapetool if it's from shape
+                self.fromshape = False
         self.hasmenu = False #turns off menu
     def keypress(self,screen,keypressed):
         #handles key methods for a box
@@ -1043,6 +1076,9 @@ class Spray(Tool):
         global lastclick
         if lastclick == "canvas":
             self.cont(screen)
+        else:
+            screen.blit(tempdraw,(0,0)) #blits tempdraw
+            tempdraw.fill((255,255,255,0)) #clears tempdraw
     def keypress(self,screen,keypressed=""):
         if keypressed == " ":
             self.size = 10 #resets size if space is pressed
@@ -1058,6 +1094,7 @@ class Shape(Tool):
         self.shape = "rect" #shape of tool, default is rect
         self.col = lcol #color of shape - default is left mouse color
         self.width = 0 #width of shape - default is 0
+        self.forming = False #forming a rect or an ellipse?
         self.sx,self.sy = 0,0 #starting co-ords of shape, starts at 0,0 (doesn't rly matter since we change it on click)
         self.points = [] #points of polygon (for polygon option)
     def lclick(self,screen):
@@ -1089,7 +1126,7 @@ class Shape(Tool):
                     draw.line(tempdraw,self.col,self.points[-2],self.points[-1])
             return 0 #returns so that it does not run following code
         #----Other shapes----#
-        cfiller = screen.copy().subsurface(canvas) #sets cfiller to be canvas before click
+        self.forming = True
         self.sx,self.sy = mx,my #sets starting co-ords to mouse pos
         self.col = lcol #sets color to left click color
     def rclick(self,screen):
@@ -1141,41 +1178,70 @@ class Shape(Tool):
                         draw.line(tempdraw,self.col,self.points[i-1],self.points[i])
     def cont(self,screen):
         global cfiller
-        if self.shape == "polygon":
-            return 0 #does nothing if shape is a polygon
+        if self.shape == "polygon" or not self.forming:
+            return 0 #does nothing if shape is a polygon or if it is not forming
         mx,my = mouse.get_pos()
+        framerect = Rect(self.sx,self.sy,mx-self.sx,my-self.sy) #rect for frame of ellipse/rectangle
+        framerect.normalize()
         tempdraw.fill((255,255,255,0)) #clears tempdraw
         if self.shape == "rect":
-            sx = min(self.sx,mx) #sx becomes smaller of startx and mouse-x
-            sy = min(self.sy,my) #same idea as sx
-            if self.width == 0:
-                draw.rect(tempdraw,self.col,(sx,sy,abs(self.sx-mx),abs(self.sy-my)))
-            else:
-                #draws 4 lines if it doesn't fill the rect
-                draw.line(tempdraw,self.col,(sx-self.width/2+1,sy),(sx+abs(self.sx-mx)+self.width/2,sy),self.width)
-                draw.line(tempdraw,self.col,(sx,sy),(sx,sy+abs(self.sy-my)),self.width)
-                draw.line(tempdraw,self.col,(sx+abs(self.sx-mx),sy),(sx+abs(self.sx-mx),sy+abs(self.sy-my)),self.width)
-                draw.line(tempdraw,self.col,(sx-self.width/2+1,sy+abs(self.sy-my)),(sx+abs(self.sx-mx)+self.width/2,sy+abs(self.sy-my)),self.width)
+            draw.rect(tempdraw,self.col,framerect)
+            if self.width > 0 and abs(self.sy-my)-self.width*2 > 0 and abs(self.sx-mx)-self.width*2 > 0:
+                draw.rect(tempdraw,(255,255,255,0),(framerect[0]+self.width,framerect[1]+self.width,framerect[2]-2*self.width,framerect[3]-2*self.width))
         elif self.shape == "ellipse":
             sx = min(self.sx,mx) #sx becomes smaller of startx and mouse-x
             sy = min(self.sy,my) #same idea as sx
             ellipseSurface = Surface((abs(self.sx-mx),abs(self.sy-my)),SRCALPHA) #surface that will contain the ellipse
-            draw.ellipse(ellipseSurface,self.col,(0,0,abs(self.sx-mx),abs(self.sy-my))) #draws ellipse
+            draw.ellipse(ellipseSurface,self.col,Rect(0,0,framerect[2],framerect[3])) #draws ellipse
             if self.width != 0 and abs(self.sy-my)-self.width*2 > 0 and abs(self.sx-mx)-self.width*2 > 0:
                 #if the width and height of the centre ellipse is greater than 0 and the ellipse has a border, draws transparent ellipse in the centre to simulate an ellipse with a border
-                draw.ellipse(ellipseSurface,(255,255,255,0),(self.width,self.width,abs(self.sx-mx)-self.width*2,abs(self.sy-my)-self.width*2))
-            tempdraw.blit(ellipseSurface,(sx,sy)) #blits the ellipse surface
+                draw.ellipse(ellipseSurface,(255,255,255,0),(self.width,self.width,framerect[2]-self.width*2,framerect[3]-self.width*2))
+            tempdraw.blit(ellipseSurface,(framerect[0],framerect[1])) #blits the ellipse surface
     def mouseup(self,screen):
-        if self.shape != "polygon" or len(self.points) == 0:
-            #if shape isn't polygon we do it as normal or if it has no points set we do as normal
-            super(Shape,self).mouseup(screen)
+        global currtool
+        mb = mouse.get_pressed()
+        if self.shape in ["rect","ellipse"] and self.forming:
+            #turns to tool into selectool
+            cfiller = screen.copy().subsurface(canvas)
+            currtool = selectool
+            selectool.fromshape = True #sets selectool to be from shape so that it reverts to shape tool when done
+            framerect = Rect(self.sx,self.sy,mx-self.sx,my-self.sy) #rect for frame of ellipse/rectangle
+            framerect.normalize()
+            selectool.selectedbox = tempdraw.subsurface(framerect).copy()
+            selectool.x,selectool.y,selectool.width,selectool.height = framerect
+            selectool.hasbox = True
+            tempdraw.fill((255,255,255,0)) #clears tempdraw
+            screen.blit(toolboxfiller,(20,90)) #clears shapetool's drop down box
+            cfiller = screen.copy().subsurface(canvas)
+            self.forming = False
+        elif len(self.points) == 0:
+            screen.blit(tempdraw,(0,0))
+            tempdraw.fill((255,255,255,0)) #clears tempdraw
     def keypress(self,screen,keypressed=""):
         if keypressed == " ":
             self.width = 0 #resets width when space is clicked
     def outside(self):
+        mb = mouse.get_pressed()
         if self.shape == "polygon" and len(self.points) > 0:
             self.points = [] #deletes points in polygon
-
+        if lastclick == "canvas":
+            self.cont(screen)
+        else:
+            if self.shape in ["rect","ellipse"] and self.forming:
+                cfiller = screen.copy().subsurface(canvas)
+                currtool = selectool
+                selectool.fromshape = True #sets selectool to be from shape so that it reverts to shape tool when done
+                framerect = Rect(self.sx,self.sy,mx-self.sx,my-self.sy) #rect for frame of ellipse/rectangle
+                framerect.normalize()
+                selectool.selectedbox = tempdraw.subsurface(framerect).copy()
+                selectool.x,selectool.y,selectool.width,selectool.height = framerect
+                selectool.hasbox = True
+                tempdraw.fill((255,255,255,0)) #clears tempdraw
+                screen.blit(toolboxfiller,(20,90)) #clears shapetool's drop down box
+                self.forming = False
+            if self.shape == "polygon":
+                screen.blit(tempdraw,(0,0))
+            tempdraw.fill((255,255,255,0)) #clears tempdraw
 #-------------------------------------------Fill Tool
 class Fill(Tool):
     #fills an area with a colour
@@ -1411,6 +1477,9 @@ class Button():
             newfontsize = max(5,newfontsize) #limits new font size
             textool.fontsize = newfontsize
             textool.textbox.changefont(textool.textbox.fontfamily,newfontsize) #changes fontsize
+        elif self.func == "textdec":
+            #text decorator button
+            exec("textool.textbox.tbfont.set_"+self.arg2+"(not textool.textbox.tbfont.get_"+self.arg2+"())") #sets textool's decor
         elif self.func == "shape":
             #shape change button
             currtool = shapetool
@@ -1513,6 +1582,7 @@ class Button():
             undo_mem.append(screen.copy().subsurface(canvas))
             redo_mem = [] #adds to undo list undo_memory and deletes all of redo list undo_memory
             draw.rect(screen,WHITE,canvas) #fills canvas white
+            tempdraw.fill((255,255,255,0)) #clears tempdraw
         elif self.func in ["copy","cut"]:
             #copy button
             if self.func == "cut":
@@ -1596,7 +1666,11 @@ fontdropdown.items[0].selected = True
 shapedropdown.items[0].selected = True
 #Fontsize buttons
 fontsizebuttons = [Button("fontsize",comicsans.render(" -",True,BLACK),114,432,"Change fontsize",20,20,-1),
-                   Button("fontsize",comicsans.render(" +",True,BLACK),250,432,"Change fontsize",20,20,1)]
+                    Button("fontsize",comicsans.render(" +",True,BLACK),250,432,"Change fontsize",20,20,1)]
+#Font decoration buttons
+fontdecorbuttons = [Button("textdec",timesnr.render("B",True,BLACK),34,432,"Bold",20,20,"bold"),
+                    Button("textdec",timesnr.render("I",True,BLACK),54,432,"Italicize",20,20,"italic"),
+                    Button("textdec",timesnr.render("U",True,BLACK),74,432,"Underline",20,20,"underline")]
 #shape width buttons
 shapewidthbuttons = [Button("shapewidth",comicsans.render(" -",True,BLACK),114,432,"Change width",20,20,-1),
                    Button("shapewidth",comicsans.render(" +",True,BLACK),250,432,"Change width",20,20,1)]
@@ -1786,6 +1860,11 @@ while running:
                             mousetimer = time() #sets time clicked and button held
                             lastclick = "fontsize"
                             break
+                    for b in fontdecorbuttons:
+                        if b.istouch():
+                            b.clickon(screen)
+                            b.selected = not b.selected #sets whether b is seleced or not (if it is it turns it off, otherwise it turns it on)
+                            lastclick = "fontdecor"
                 if currtool == shapetool:
                     for b in shapewidthbuttons:
                         if b.istouch():
@@ -1870,6 +1949,7 @@ while running:
                 redo_mem = [] #makes the redo option empty as it shouldn't do anything once new data is added to the screen
                 undo_mem.append(screen.copy().subsurface(canvas)) #adds a screenshot to the undo list undo_memory before the user's change to the canvas
                 draw.rect(screen,WHITE,canvas)
+                tempdraw.fill((255,255,255,0)) #clears tempdraw
             elif kp[K_s] and (kp[K_LCTRL] or kp[K_RCTRL]):
                 #if user presses CTRL-S will save
                 if not canundo:
@@ -1971,6 +2051,8 @@ while running:
     if currtool == textool:
         for b in fontsizebuttons:
             b.display(screen)
+        for b in fontdecorbuttons:
+            b.display(screen)
     if currtool == shapetool:
         for b in shapewidthbuttons:
             b.display(screen)
@@ -1986,10 +2068,11 @@ while running:
     if currtool in [penciltool,brushtool,spraytool,shapetool,linetool]:
         #displays transparency if transparency is available for tool
         draw.rect(screen,WHITE,(152,100,116,40))
+        draw.rect(screen,BLACK,(152,100,116,40),1)
         comicsans.set_bold(True)
-        screen.blit(comicsans.render("Opacity",True,BLACK),(152,100))
+        screen.blit(comicsans.render("Opacity",True,BLACK),(154,100))
         comicsans.set_bold(False)
-        screen.blit(comicsans.render(str(alpha)+"%",True,BLACK),(152,120)) #displays transparency for brush
+        screen.blit(comicsans.render(str(alpha)+"%",True,BLACK),(154,120)) #displays transparency for brush
         for b in alphabuttons:
             b.display(screen) #draws buttons
     #----MOUSE HOLD FUNCTIONS----#
