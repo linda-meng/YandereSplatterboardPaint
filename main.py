@@ -7,7 +7,7 @@ from time import *
 font.init()
 #----METADATA----#
 __author__ = "Yttrium Z (You Zhou)"
-__date__ = "Not finished"
+__date__ = "January 29th, 2016"
 __purpose__ = "Grade 11 Project - Paint Program"
 __name__ = "Yandere Splatterboard"
 __copyright__ = "Yttrium Z 2015-2016"
@@ -842,10 +842,11 @@ class Select(Tool):
     def __init__(self):
         self.icon = crosscursor
         self.hasmenu = False #has the tool a menu set?
+        self.selectedbox = None #selected box by shape
         self.menux,self.menuy = 0,0 #menu position
-        self.menu = [Button("save",timesnr.render("Save selected area as...",True,BLACK),self.menux,self.menuy,"",200,20),
-                    Button("copy",timesnr.render("Copy (Ctrl-C)",True,BLACK),self.menux,self.menuy+20,"",200,20),
-                    Button("cut",timesnr.render("Cut (Ctrl-X)",True,BLACK),self.menux,self.menuy+40,"",200,20),
+        self.menu = [Button("save",timesnr.render("Save selected area as...",True,BLACK),self.menux,self.menuy,"",200,20,self.selectedbox),
+                    Button("copy",timesnr.render("Copy (Ctrl-C)",True,BLACK),self.menux,self.menuy+20,"",200,20,self.selectedbox),
+                    Button("cut",timesnr.render("Cut (Ctrl-X)",True,BLACK),self.menux,self.menuy+40,"",200,20,self.selectedbox),
                     Button("delete",timesnr.render("Delete (del)",True,BLACK),self.menux,self.menuy+60,"",200,20),
                     Button("flip",timesnr.render("Flip horizontally",True,BLACK),self.menux,self.menuy+80,"",200,20,(True,False)),
                     Button("flip",timesnr.render("Flip vertically",True,BLACK),self.menux,self.menuy+100,"",200,20,(False,True)),
@@ -855,7 +856,6 @@ class Select(Tool):
         self.fromshape = False #did the selectool come as a result of a shape?
         self.hasbox = False #has the tool a selected box set?
         self.forming = False #is the box being formed?
-        self.selectedbox = None #selected box by shape
         self.x,self.y,self.width,self.height = 0,0,0,0 #dimensions and co-ords of selected box
         self.dx,self.dy = 0,0 #difference in x and y between mouse and corner of selectedbox
         self.clicked = 0 #which button clicked? 0 means left mouse, 1 means right mouse
@@ -928,9 +928,9 @@ class Select(Tool):
                 self.menux,self.menuy = mx,my
                 self.menurect = Rect(self.menux,self.menuy,200,len(self.menu)*20)
                 self.hasmenu = True
-                self.menu = [Button("save",timesnr.render("Save selected area as...",True,BLACK),self.menux,self.menuy,"",200,20),
-                    Button("copy",timesnr.render("Copy (Ctrl-C)",True,BLACK),self.menux,self.menuy+20,"",200,20),
-                    Button("cut",timesnr.render("Cut (Ctrl-X)",True,BLACK),self.menux,self.menuy+40,"",200,20),
+                self.menu = [Button("save",timesnr.render("Save selected area as...",True,BLACK),self.menux,self.menuy,"",200,20,self.selectedbox),
+                    Button("copy",timesnr.render("Copy (Ctrl-C)",True,BLACK),self.menux,self.menuy+20,"",200,20,self.selectedbox),
+                    Button("cut",timesnr.render("Cut (Ctrl-X)",True,BLACK),self.menux,self.menuy+40,"",200,20,self.selectedbox),
                     Button("delete",timesnr.render("Delete (del)",True,BLACK),self.menux,self.menuy+60,"",200,20),
                     Button("flip",timesnr.render("Flip horizontally",True,BLACK),self.menux,self.menuy+80,"",200,20,(True,False)),
                     Button("flip",timesnr.render("Flip vertically",True,BLACK),self.menux,self.menuy+100,"",200,20,(False,True)),
@@ -1016,7 +1016,15 @@ class Select(Tool):
         global cfiller
         global lastclick
         global currtool
+        mx,my = mouse.get_pos()
         if self.hasbox and lastclick != "canvas":
+            if self.hasmenu and self.menurect.collidepoint(mx,my):
+                #if user clicks the menu we handle the clicking
+                for b in self.menu:
+                    if b.istouch():
+                        b.clickon(screen) #clicks on button
+                        break
+                return 0 #returns 0 to discontinue
             #if the last click was not the canvas we turn off the tool
             try:
                 self.selectedbox = transform.smoothscale(self.selectedbox,(abs(self.width),abs(self.height)))#resizes image
@@ -1665,7 +1673,7 @@ class Button():
             #if the the button changes the tool into a special yandere stamp, in which case we add an extra line of text informing the user of the right-click special
             draw.rect(screen,BLACK,(mx,my-53,width,53))
             screen.blit(comicsans.render(self.toolbit,True,BLOODRED),(mx+5,my-48))
-            smallfont = font.SysFont("comicsansms",10) #small font
+            smallfont = font.SysFont("comicsansms",10) #small
             screen.blit(smallfont.render("RIGHT CLICK ON CANVAS FOR YANDERE VERSION",True,BLOODRED),(mx+5,my-30))
             screen.blit(smallfont.render("[Scroll to change size, space to reset size]",True,BLOODRED),(mx+5,my-17))
         elif self.func in [linetool,brushtool,erasertool,spraytool] or type(self.func) == Stamp:
@@ -1723,7 +1731,8 @@ fontdropdown = DropDownBox(114,412,[Button("font",comicsans.render("Comic Sans M
                                    Button("font",timesnr.render("Times New Roman",True,BLACK),114,472,"Change Font-Family",136,20,"timesnewroman"),
                                    Button("font",lucidaconsole.render("Lucida Console",True,BLACK),114,492,"Change Font-Family",136,20,"lucidaconsole"),
                                    Button("font",impact.render("Impact",True,BLACK),114,512,"Change Font-Family",136,20,"impact"),
-                                   Button("font",vladimirscript.render("Vladimir Script",True,BLACK),114,532,"Change Font-Family",136,20,"vladimirscript")],"SELECT FONT")
+                                   Button("font",vladimirscript.render("Vladimir Script",True,BLACK),114,532,"Change Font-Family",136,20,"vladimirscript"),
+                                   Button("font",chiller.render("Chiller",True,BLACK),114,532,"Change Font-Family",136,20,"chiller")],"SELECT FONT")
 #drop down boxes for shapes
 shapedropdown = DropDownBox(114,412,[Button("shape",comicsans.render("Rectangle",True,BLACK),114,432,"Draw a rectangle by clicking and dragging",140,20,"rect"),
                                      Button("shape",comicsans.render("Ellipse",True,BLACK),114,452,"Draw an ellipse by clicking and dragging",140,20,"ellipse"),
@@ -1908,6 +1917,10 @@ while running:
                 #if user clicks shape drop down menu
                 lastclick = "shapedropdown"
                 shapedropdown.clickon(screen)
+            elif selectool.hasmenu and selectool.menurect.collidepoint(mx,my) and currtool == selectool:
+                #if user clicks menu on select tool
+                lastclick = "selectmenu"
+                selectool.lclick(screen)
             elif gradsel.istouch():
                 #if user clicked gradient selector
                 lastclick = "gradsel"
@@ -2094,24 +2107,25 @@ while running:
             elif kp[K_v] and (kp[K_LCTRL] or kp[K_RCTRL]):
                 #CTRL-V
                 #pastes clipboard image
-                if boxcp != None:
-                    if len(undo_mem) >= 256:
-                        del undo_mem[0] #removes the last thing undo_memorized if we're over the limit
-                    undo_mem.append(screen.copy().subsurface(canvas)) #appends current screen to undo list
-                    redo_mem = []
-                    screen.set_clip(canvas)
-                    if selectool.hasbox:
-                        screen.blit(selectool.selectedbox,(selectool.x,selectool.y))
-                    #we blit the image to where we copied it from in a select box
-                    selectool.selectedbox = boxcp[0]
-                    selectool.x = boxcp[1][0]
-                    selectool.y = boxcp[1][1]
-                    selectool.width = boxcp[0].get_width()
-                    selectool.height = boxcp[0].get_height() #setting up the box to contain the image
-                    selectool.hasbox = True
-                    cfiller = screen.copy().subsurface(canvas)
-                    currtool = selectool
-                    screen.set_clip(None)
+                if type(boxcp) != None:
+                    if None not in boxcp:
+                        if len(undo_mem) >= 256:
+                            del undo_mem[0] #removes the last thing undo_memorized if we're over the limit
+                        undo_mem.append(screen.copy().subsurface(canvas)) #appends current screen to undo list
+                        redo_mem = []
+                        screen.set_clip(canvas)
+                        if selectool.hasbox:
+                            screen.blit(selectool.selectedbox,(selectool.x,selectool.y))
+                        #we blit the image to where we copied it from in a select box
+                        selectool.selectedbox = boxcp[0]
+                        selectool.x = boxcp[1][0]
+                        selectool.y = boxcp[1][1]
+                        selectool.width = boxcp[0].get_width()
+                        selectool.height = boxcp[0].get_height() #setting up the box to contain the image
+                        selectool.hasbox = True
+                        cfiller = screen.copy().subsurface(canvas)
+                        currtool = selectool
+                        screen.set_clip(None)
             else:
                 currtool.keypress(screen,e.unicode)#uses current tool's keypress method
         if e.type == KEYUP:
@@ -2170,7 +2184,8 @@ while running:
         draw.rect(screen,WHITE,(54,432,150,20))
         draw.rect(screen,BLACK,(54,432,150,20),1)
         try:
-            screen.blit(comicsans.render("Size: "+str(currtool.size),True,BLACK),(55,433))
+            size = currtool.size*2 if currtool.size != 0 else 1
+            screen.blit(comicsans.render("Size: "+str(size),True,BLACK),(55,433))
         except:
             screen.blit(comicsans.render("Percentage: "+str(currtool.percentage)+"%",True,BLACK),(55,433))
     #----TRANSPARENCY INDICATOR----#
@@ -2193,9 +2208,10 @@ while running:
                 currtool.cont(screen)
                 screen.set_clip(None)
         else:
-            screen.set_clip(canvas)
-            currtool.outside()
-            screen.set_clip(None)
+            if lastclick == "canvas" or currtool == textool:
+                screen.set_clip(canvas)
+                currtool.outside()
+                screen.set_clip(None)
             if mousetimer != 0:
                 #checks if mousetimer is set - if it is we call the button's click method
                 if time() - mousetimer > 0.5:
