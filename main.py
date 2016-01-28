@@ -42,7 +42,6 @@ music = [mixer.Sound("music/My_Dearest.ogg"),
 shuffle(music) #shuffles the music
 music[0].play()
 song = 0 #which song are we playing
-screen.blit(image.load("images/LoadScreen.png"),(0,0))
 draw.rect(screen,(255,0,0),(143,466,420,27))
 display.flip()
 #COLOR
@@ -60,7 +59,6 @@ YELLOW = (255,255,0,255)
 CYAN = (0,255,255,255)
 MAGENTA = (255,0,255,255)
 alpha = 100 #alpha %
-screen.blit(image.load("images/LoadScreen.png"),(0,0))
 draw.rect(screen,(255,0,0),(143,466,500,27))
 display.flip()
 #FONTS
@@ -72,7 +70,6 @@ impact = font.SysFont("impact",15)
 vladimirscript = font.SysFont("vladimirscript",15)
 chiller = font.SysFont("chiller",15)
 titlefont = font.SysFont("chiller",36)
-screen.blit(image.load("images/LoadScreen.png"),(0,0))
 draw.rect(screen,(255,0,0),(143,466,580,27))
 display.flip()
 #SPRITES AND IMAGES
@@ -128,7 +125,6 @@ byakuyatogami = image.load("images/byakuyatogami.png")
 yukiface = transform.smoothscale(image.load("images/yukiface.png"),(50,50))
 yukinagato = image.load("images/yukinagato.png")
 redarrow = transform.scale(image.load("images/RedArrowDown.png"),(30,30))
-screen.blit(image.load("images/LoadScreen.png"),(0,0))
 draw.rect(screen,(255,0,0),(143,466,809,27))
 display.flip()
 screen.blit(image.load("images/LoadScreen2.png"),(0,0)) #second loading screen - means music is loaded and loading is almost done
