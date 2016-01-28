@@ -2,6 +2,7 @@ import os
 from random import *
 from math import *
 from tkinter import *
+from tkinter import filedialog as filedialog
 from pygame import *
 from time import *
 font.init()
@@ -16,29 +17,34 @@ os.environ['SDL_VIDEO_WINDOW_POS'] = '25,25'
 root = Tk()
 root.withdraw() #makes sure file dialog box disappears after it closes
 screen = display.set_mode((1200,750))
-display.set_caption("YANDERE SPLATTERBOARD - PAINT PROGRAM BY YOU ZHOU ~~~~~~GREAT ART TAKES DEADICATION~~~~~~")
 try:
     display.set_icon(transform.scale(image.load("images/icon.jpg"),(32,32))) #sets icon
 except:
     pass
+display.set_caption("YANDERE SPLATTERBOARD - PAINT PROGRAM BY YOU ZHOU ~~~~~~GREAT ART TAKES DEADICATION~~~~~~","Yandere Splatterboard")
 #----LOADING SCREEN----#
 screen.blit(image.load("images/LoadScreen.png"),(0,0))
+draw.rect(screen,(255,0,0),(143,466,80,27))
 display.flip()
 #----PERMANENT CONSTANT DATA----#
 #data that can never change no matter what user does
 #MUSIC (Really lags up the program startup)
 init()
 mixer.init()
-music = [mixer.Sound("music/My_Dearest.ogg")]
-'''mixer.Sound("music/MiraiNikkiOP.ogg"),
-mixer.Sound("music/InnocentBlue.ogg"),
-mixer.Sound("music/Lillium.ogg"),
-mixer.Sound("music/NeverSayNever.ogg"),
-mixer.Sound("music/BoukenDesho.ogg")
+music = [mixer.Sound("music/My_Dearest.ogg"),
+        mixer.Sound("music/MiraiNikkiOP.ogg"),
+        mixer.Sound("music/InnocentBlue.ogg"),
+        mixer.Sound("music/Lillium.ogg"),
+        mixer.Sound("music/BoukenDesho.ogg"),
+        mixer.Sound("music/NeverSayNever.ogg")]
+'''
 '''
 shuffle(music) #shuffles the music
 music[0].play()
 song = 0 #which song are we playing
+screen.blit(image.load("images/LoadScreen.png"),(0,0))
+draw.rect(screen,(255,0,0),(143,466,420,27))
+display.flip()
 #COLOR
 WHITE = (255,255,255,255)
 BLACK = (0,0,0,255)
@@ -54,6 +60,9 @@ YELLOW = (255,255,0,255)
 CYAN = (0,255,255,255)
 MAGENTA = (255,0,255,255)
 alpha = 100 #alpha %
+screen.blit(image.load("images/LoadScreen.png"),(0,0))
+draw.rect(screen,(255,0,0),(143,466,500,27))
+display.flip()
 #FONTS
 comicsans = font.SysFont("comicsansms", 15)
 arial = font.SysFont("arial",15)
@@ -63,6 +72,9 @@ impact = font.SysFont("impact",15)
 vladimirscript = font.SysFont("vladimirscript",15)
 chiller = font.SysFont("chiller",15)
 titlefont = font.SysFont("chiller",36)
+screen.blit(image.load("images/LoadScreen.png"),(0,0))
+draw.rect(screen,(255,0,0),(143,466,580,27))
+display.flip()
 #SPRITES AND IMAGES
 pencilsprite = transform.scale(image.load("images/pencil.png"),(40,40))
 eraser = transform.scale(image.load("images/eraser.gif"),(40,40))
@@ -76,6 +88,7 @@ polygonsprite = transform.scale(image.load("images/polygon.png"),(40,40))
 dottedbox = transform.scale(image.load("images/dottedbox.gif"),(40,40))
 fillbucket = image.load("images/fillbucket.png")
 bluricon = transform.scale(image.load("images/waterdrop.png"),(40,40))
+pixelateicon = transform.scale(image.load("images/pixelateicon.gif"),(40,40))
 spraycan = transform.scale(image.load("images/spraypaint.png"),(40,40))
 ibeam = transform.scale(image.load("images/ibeam.png"),(40,40))
 crosscursor = transform.scale(image.load("images/crosscursor.gif"),(40,40))
@@ -86,18 +99,18 @@ redoicon = transform.flip(undoicon,True,False)
 clearicon = transform.scale(image.load("images/Red_X.png"),(60,60))
 yunoface = transform.smoothscale(image.load("images/yunoface.png"),(50,50))
 yunogasai = image.load("images/yunogasai.png")
-yandereyuno = transform.smoothscale(image.load("images/yandereyuno.png"),(220,300))
+yandereyuno = image.load("images/yandereyuno.png")
 kotonohaface = transform.smoothscale(image.load("images/kotonoha.png"),(50,50))
-kotonohakatsura = transform.smoothscale(image.load("images/kotonohakatsura.png"),(360,400))
-yanderekotonoha = transform.smoothscale(image.load("images/yanderekotonoha.png"),(310,400))
+kotonohakatsura = image.load("images/kotonohakatsura.png")
+yanderekotonoha = image.load("images/yanderekotonoha.png")
 lucyface = transform.smoothscale(image.load("images/lucyface.png"),(50,50))
-lucy = transform.smoothscale(image.load("images/lucy.png"),(280,400))
-yanderelucy = transform.smoothscale(image.load("images/yanderelucy.png"),(525,600))
+lucy = image.load("images/lucy.png")
+yanderelucy = image.load("images/yanderelucy.png")
 inoriface = transform.smoothscale(image.load("images/inoriface.png"),(50,50))
-inoriyuzuriha = transform.smoothscale(image.load("images/inoriyuzuriha.png"),(280,400))
-yandereinori = transform.scale(image.load("images/yandereinori.png"),(280,400))
+inoriyuzuriha = image.load("images/inoriyuzuriha.png")
+yandereinori = image.load("images/yandereinori.png")
 tokoface = transform.smoothscale(image.load("images/tokoface.png"),(50,50))
-tokofukawa = transform.smoothscale(image.load("images/tokofukawa.png"),(400,400))
+tokofukawa = image.load("images/tokofukawa.png")
 genocidersyo = image.load("images/genocidersyo.png")
 ryokoface = transform.smoothscale(image.load("images/ryokoface.png"),(50,50))
 ryokoasakura = image.load("images/ryokoasakura.png")
@@ -115,6 +128,9 @@ byakuyatogami = image.load("images/byakuyatogami.png")
 yukiface = transform.smoothscale(image.load("images/yukiface.png"),(50,50))
 yukinagato = image.load("images/yukinagato.png")
 redarrow = transform.scale(image.load("images/RedArrowDown.png"),(30,30))
+screen.blit(image.load("images/LoadScreen.png"),(0,0))
+draw.rect(screen,(255,0,0),(143,466,809,27))
+display.flip()
 screen.blit(image.load("images/LoadScreen2.png"),(0,0)) #second loading screen - means music is loaded and loading is almost done
 display.flip()
 #Finalizes Screen
@@ -341,7 +357,6 @@ class GradSel():
 class volSlider():
     def __init__(self,x,y,width,height):
         self.x,self.y,self.width,self.height = x,y,width,height #dimensions and co-ords of volume slider
-        self.visible = False #is it visble?
         self.sliderheight = self.height-20  #height of slider
         self.sliderx = self.x+(self.width-20)//2#x co-ord of slider pos
         self.place = 1 #place of volume slider
@@ -386,7 +401,7 @@ class Tool():
         pass
     def mouseup(self,screen):
         #if mouse is raised
-        screen.blit(tempdraw,(0,0)) #blits tempdraw
+        screen.blit(tempdraw,(0,0)) #blits temporary drawing board (it is a drawing board to support transparency, it is declared below the classes)
         tempdraw.fill((255,255,255,0))#clears temporary drawing board
     def scroll(self,screen,forward=True):
         #scrolling function of tool
@@ -842,21 +857,24 @@ class Select(Tool):
     def __init__(self):
         self.icon = crosscursor
         self.hasmenu = False #has the tool a menu set?
-        self.selectedbox = None #selected box by shape
+        self.selectedbox = Surface((1,1)) #selected box by shape
+        self.x,self.y,self.width,self.height = 0,0,0,0 #dimensions and co-ords of selected box
         self.menux,self.menuy = 0,0 #menu position
-        self.menu = [Button("save",timesnr.render("Save selected area as...",True,BLACK),self.menux,self.menuy,"",200,20,self.selectedbox),
-                    Button("copy",timesnr.render("Copy (Ctrl-C)",True,BLACK),self.menux,self.menuy+20,"",200,20,self.selectedbox),
-                    Button("cut",timesnr.render("Cut (Ctrl-X)",True,BLACK),self.menux,self.menuy+40,"",200,20,self.selectedbox),
+        self.menu = [Button("save",timesnr.render("Save selected area as...",True,BLACK),self.menux,self.menuy,"",200,20,
+                            transform.smoothscale(self.selectedbox,(self.width,self.height))),
+                    Button("copy",timesnr.render("Copy (Ctrl-C)",True,BLACK),self.menux,self.menuy+20,"",200,20,
+                            transform.smoothscale(self.selectedbox,(self.width,self.height))),
+                    Button("cut",timesnr.render("Cut (Ctrl-X)",True,BLACK),self.menux,self.menuy+40,"",200,20,
+                            transform.smoothscale(self.selectedbox,(self.width,self.height))),
                     Button("delete",timesnr.render("Delete (del)",True,BLACK),self.menux,self.menuy+60,"",200,20),
                     Button("flip",timesnr.render("Flip horizontally",True,BLACK),self.menux,self.menuy+80,"",200,20,(True,False)),
                     Button("flip",timesnr.render("Flip vertically",True,BLACK),self.menux,self.menuy+100,"",200,20,(False,True)),
-                    Button("rotate",timesnr.render("Rotate 90° clockwise",True,BLACK),self.menux,self.menuy+120,"",200,20,90),
+                    Button("rotate",timesnr.render("Rotate 90° clockwise",True,BLACK),self.menux,self.menuy+120,"",200,20,-90),
                     Button("rotate",timesnr.render("Rotate 90° counter-clockwise",True,BLACK),self.menux,self.menuy+140,"",200,20,90)] #menu
         self.menurect = Rect(0,0,200,len(self.menu)*20) #menu rect
         self.fromshape = False #did the selectool come as a result of a shape?
         self.hasbox = False #has the tool a selected box set?
         self.forming = False #is the box being formed?
-        self.x,self.y,self.width,self.height = 0,0,0,0 #dimensions and co-ords of selected box
         self.dx,self.dy = 0,0 #difference in x and y between mouse and corner of selectedbox
         self.clicked = 0 #which button clicked? 0 means left mouse, 1 means right mouse
         self.op = 0 #option of size change the user tried (this is determined by where user clicks; each option affects different parts of the box, like either x or width, y or height, etc.)
@@ -928,9 +946,12 @@ class Select(Tool):
                 self.menux,self.menuy = mx,my
                 self.menurect = Rect(self.menux,self.menuy,200,len(self.menu)*20)
                 self.hasmenu = True
-                self.menu = [Button("save",timesnr.render("Save selected area as...",True,BLACK),self.menux,self.menuy,"",200,20,self.selectedbox),
-                    Button("copy",timesnr.render("Copy (Ctrl-C)",True,BLACK),self.menux,self.menuy+20,"",200,20,self.selectedbox),
-                    Button("cut",timesnr.render("Cut (Ctrl-X)",True,BLACK),self.menux,self.menuy+40,"",200,20,self.selectedbox),
+                self.menu = [Button("save",timesnr.render("Save selected area as...",True,BLACK),self.menux,self.menuy,"",200,20,
+                            transform.smoothscale(self.selectedbox,(self.width,self.height))),
+                    Button("copy",timesnr.render("Copy (Ctrl-C)",True,BLACK),self.menux,self.menuy+20,"",200,20,
+                            transform.smoothscale(self.selectedbox,(self.width,self.height))),
+                    Button("cut",timesnr.render("Cut (Ctrl-X)",True,BLACK),self.menux,self.menuy+40,"",200,20,
+                            transform.smoothscale(self.selectedbox,(self.width,self.height))),
                     Button("delete",timesnr.render("Delete (del)",True,BLACK),self.menux,self.menuy+60,"",200,20),
                     Button("flip",timesnr.render("Flip horizontally",True,BLACK),self.menux,self.menuy+80,"",200,20,(True,False)),
                     Button("flip",timesnr.render("Flip vertically",True,BLACK),self.menux,self.menuy+100,"",200,20,(False,True)),
@@ -1341,22 +1362,41 @@ class Blur(Tool):
         for x in range(mx-10,mx+11):
             for y in range(my-10,my+11):
                 if hypot(mx-x,my-y) <= 10 and canvas.collidepoint(x,y):
-                    r,g,b,a = screen.get_at((x,y))
-                    rs,gs,bs = [],[],[]
+                    r,g,b,a = screen.get_at((x,y)) #finds color at a location
+                    rs,gs,bs = [],[],[] #lists to hold all the neighbouring pixels color for r,g,b
                     for dx,dy in [(-1,0),(0,-1),(1,0),(0,1)]:
                         if canvas.collidepoint(x+dx,y+dy):
-                            ri,gi,bi,a = screen.get_at((x+dx,y+dy))
+                            ri,gi,bi,a = screen.get_at((x+dx,y+dy)) #gets pixel's color in all four directions
                             rs.append(ri)
                             gs.append(gi)
                             bs.append(bi)
                     r2 = (r+sum(rs))//(len(rs)+1)
                     g2 = (g+sum(gs))//(len(rs)+1)
-                    b2 = (b+sum(bs))//(len(rs)+1)
+                    b2 = (b+sum(bs))//(len(rs)+1) #averages out r,g,b and sets pixel to that color
                     screen.set_at((x,y),(r2,g2,b2))
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
         screen.blit(self.icon,(mx-20,my-35))
         draw.circle(screen,BLACK,(mx,my),10,1)
+        screen.blit(crosscursor,(mx-21,my-20))
+#-------------------------------------------Pixelate
+class Pixelate(Tool):
+    #pixelates an area (within a circle is WIP)
+    def __init__(self):
+        self.icon = pixelateicon
+    def cont(self,screen):
+        #pixelates while mouse is held
+        for x in range(mx-10,mx+10,5):
+            for y in range(my-10,my+10,5):
+                if canvas.collidepoint(x,y) and canvas.collidepoint(x+5,y+5):
+                    #makes sure canvas touches opposite corners of square
+                    #if it's within canvas we create a pixel
+                    avgcolor = transform.average_color(screen.subsurface(Rect(x,y,5,5))) #gets average color
+                    draw.rect(screen,avgcolor,(x,y,5,5)) #draws pixel
+    def drawsprite(self,screen):
+        mx,my = mouse.get_pos()
+        screen.blit(self.icon,(mx-20,my-35))
+        draw.rect(screen,BLACK,(mx-10,my-10,20,20),1)
         screen.blit(crosscursor,(mx-21,my-20))
 #-------------------------------------------Stamp
 class Stamp(Tool):
@@ -1496,7 +1536,6 @@ class Button():
         global lcol
         global rcol
         global shapetool
-        global root
         global cfiller
         global undo_mem
         global redo_mem
@@ -1559,8 +1598,6 @@ class Button():
             elif type(currtool) == Text:
                 currtool.hastextbox = False
             mouse.set_visible(True)
-            root = Tk()
-            root.withdraw() #resets window
             savename = filedialog.asksaveasfilename(defaultextension=".jpg")
             if savename:
                 if self.arg2 == None:
@@ -1579,8 +1616,6 @@ class Button():
                 currtool.hasbox = False
             elif type(currtool) == Text:
                 currtool.hastextbox = False
-            root = Tk()
-            root.withdraw() #resets window
             loadname = filedialog.askopenfilename(filetypes=[("Images", "*.png;*.bmp;*.jpg;*.jpeg")])
             mouse.set_visible(True)
             if loadname:
@@ -1631,7 +1666,7 @@ class Button():
             if self.func == "cut":
                 selectool.hasbox = False #turns off box in selectool
             selectool.hasmenu = False #turns off menu
-            boxcp = (self.arg2,(300,50)) #sets clipboard to copied object
+            boxcp = (self.arg2,(canvas[0],canvas[1])) #sets clipboard to copied object
         elif self.func == "delete":
             #delete button
             #deletes selectool's box
@@ -1645,6 +1680,13 @@ class Button():
             #rotate selected box button
             selectool.selectedbox = transform.rotate(selectool.selectedbox,self.arg2) #rotates selectool's selected box based on what user wants
             selectool.width,selectool.height = selectool.height,selectool.width #switches the height and width
+            selectool.hasmenu = False #turns off menu
+        elif self.func == "pixelate":
+            #pixelate selected box button
+            for x in range(0,selectool.width,5):
+                for y in range(0,selectool.height,5):
+                    avgcolor = transform.average_color(selectool.selectedbox.subsurface(x,y,5,5)) #gets average color (color of pixel) of area on surface
+                    draw.rect(selectool.selectedbox,avgcolor,(x,y,5,5)) #draws pixel on surface
             selectool.hasmenu = False #turns off menu
         elif self.func == "alpha":
             #alpha% scale button
@@ -1709,6 +1751,7 @@ selectool = Select() #select tool
 spraytool = Spray() #spray tool
 filltool = Fill() #fill tool
 blurtool = Blur() #blur tool
+pixelatetool = Pixelate() #pixelate tool
 #stamps
 #--page1
 yunostamp = Stamp(yunogasai,yandereyuno) #Yuno Gasai stamp
@@ -1732,7 +1775,7 @@ fontdropdown = DropDownBox(114,412,[Button("font",comicsans.render("Comic Sans M
                                    Button("font",lucidaconsole.render("Lucida Console",True,BLACK),114,492,"Change Font-Family",136,20,"lucidaconsole"),
                                    Button("font",impact.render("Impact",True,BLACK),114,512,"Change Font-Family",136,20,"impact"),
                                    Button("font",vladimirscript.render("Vladimir Script",True,BLACK),114,532,"Change Font-Family",136,20,"vladimirscript"),
-                                   Button("font",chiller.render("Chiller",True,BLACK),114,532,"Change Font-Family",136,20,"chiller")],"SELECT FONT")
+                                   Button("font",chiller.render("Chiller",True,BLACK),114,552,"Change Font-Family",136,20,"chiller")],"SELECT FONT")
 #drop down boxes for shapes
 shapedropdown = DropDownBox(114,412,[Button("shape",comicsans.render("Rectangle",True,BLACK),114,432,"Draw a rectangle by clicking and dragging",140,20,"rect"),
                                      Button("shape",comicsans.render("Ellipse",True,BLACK),114,452,"Draw an ellipse by clicking and dragging",140,20,"ellipse"),
@@ -1744,9 +1787,9 @@ shapedropdown.items[0].selected = True
 fontsizebuttons = [Button("fontsize",comicsans.render(" -",True,BLACK),114,432,"Change fontsize",20,20,-1),
                     Button("fontsize",comicsans.render(" +",True,BLACK),250,432,"Change fontsize",20,20,1)]
 #Font decoration buttons
-fontdecorbuttons = [Button("textdec",timesnr.render("B",True,BLACK),34,432,"Bold",20,20,"bold"),
-                    Button("textdec",timesnr.render("I",True,BLACK),54,432,"Italicize",20,20,"italic"),
-                    Button("textdec",timesnr.render("U",True,BLACK),74,432,"Underline",20,20,"underline")]
+fontdecorbuttons = [Button("textdec",timesnr.render(" B",True,BLACK),34,432,"Bold",20,20,"bold"),
+                    Button("textdec",timesnr.render(" I",True,BLACK),54,432,"Italicize",20,20,"italic"),
+                    Button("textdec",timesnr.render(" U",True,BLACK),74,432,"Underline",20,20,"underline")]
 #shape width buttons
 shapewidthbuttons = [Button("shapewidth",comicsans.render(" -",True,BLACK),114,432,"Change width",20,20,-1),
                    Button("shapewidth",comicsans.render(" +",True,BLACK),250,432,"Change width",20,20,1)]
@@ -1770,6 +1813,7 @@ tools = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follow
          Button(shapetool,roundedrect,80,200,"Shape tool (Rect): Draw a rectangle by clicking and dragging"),
          Button(filltool,fillbucket,80,250,"Fill tool: Fill an area with a colour (Warning: uses a lot of CPU)"),
          Button(blurtool,bluricon,80,300,"Blur tool: Blur a 10px radius circle to blend in your \"works\" of Deadication"),
+         Button(pixelatetool,pixelateicon,80,350,"Pixelate tool: Pixelate a 20px x 20px square"),
          Button("save",saveicon,1120,100,"Save your work of Deadication (Ctrl-S)",60,60),
          Button("open",openicon,1120,170,"Open a previously saved image (Ctrl-O) - right click to open without deleting current work (Ctrl-Shift-O)",60,60),
          Button("undo",undoicon,1120,240,"Undo last action on canvas (Ctrl-Z)",60,60),
@@ -2068,9 +2112,6 @@ while running:
                 if savename:
                     image.save(screen.copy().subsurface(canvas), savename)
                 mouse.set_visible(False)
-                root.destroy()
-                root = Tk() #allows user to use window again by resetting the window
-                root.withdraw()
             elif kp[K_o] and (kp[K_LCTRL] or kp[K_RCTRL]):
                 #if user presses CTRL-O will open a file and paste it onto canvas
                 if not canundo:
@@ -2100,9 +2141,6 @@ while running:
                     currtool.hasbox = True
                     currtool.selectedbox = transform.scale(opened_image,(width,height)) #makes opened image the box's image
                     currtool.x,currtool.y,currtool.width,currtool.height = 300,50,width,height #creating a select box around uploaded image
-                root.destroy()
-                root = Tk() #allows user to use window again by resetting the window
-                root.withdraw()
                 mouse.set_visible(False)
             elif kp[K_v] and (kp[K_LCTRL] or kp[K_RCTRL]):
                 #CTRL-V
@@ -2284,10 +2322,13 @@ while running:
     screen.blit(comicsans.render(currtool.__class__.__name__+" tool",True,BLACK),(30,412)) #blits tools' class name
     if currtool == shapetool:
         screen.blit(comicsans.render(shapetool.shape.title(),True,BLACK),(30,427)) #blits shape tool's shape
+    if currtool == selectool and selectool.hasbox:
+        screen.blit(comicsans.render("X: "+str(selectool.x-canvas[0])+" Y: "+str(selectool.y-canvas[1]),True,BLACK),(120,412)) #blits selected box's co-ords (relative to canvas)
+        screen.blit(comicsans.render(str(selectool.width)+" x "+str(selectool.height),True,BLACK),(30,427)) #blits selected box's dimensions
     if type(currtool) == Stamp:
         #if the tool is a stamp labels dimensions
-        if mb[2]:
-            screen.blit(comicsans.render(str(currtool.width2)+"px x "+str(currtool.height2)+"px",True,RED),(120,412))
+        if mb[2] and currtool.img != currtool.img2:
+            screen.blit(comicsans.render(str(currtool.width2)+"px x "+str(currtool.height2)+"px",True,RED),(120,412)) #labels red if right clicking and the 2nd image is different from the first
         else:
             screen.blit(comicsans.render(str(currtool.width)+"px x "+str(currtool.height)+"px",True,BLACK),(120,412))
     """try:
