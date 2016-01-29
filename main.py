@@ -31,13 +31,13 @@ display.flip()
 #MUSIC (Really lags up the program startup)
 init()
 mixer.init()
-music = [mixer.Sound("music/My_Dearest.ogg"),
+music = [mixer.Sound("music/My_Dearest.ogg")]
+''',
         mixer.Sound("music/MiraiNikkiOP.ogg"),
         mixer.Sound("music/InnocentBlue.ogg"),
         mixer.Sound("music/Lillium.ogg"),
         mixer.Sound("music/BoukenDesho.ogg"),
-        mixer.Sound("music/NeverSayNever.ogg")]
-'''
+        mixer.Sound("music/NeverSayNever.ogg")
 '''
 shuffle(music) #shuffles the music
 music[0].play()
@@ -125,6 +125,7 @@ byakuyatogami = image.load("images/byakuyatogami.png")
 yukiface = transform.smoothscale(image.load("images/yukiface.png"),(50,50))
 yukinagato = image.load("images/yukinagato.png")
 redarrow = transform.scale(image.load("images/RedArrowDown.png"),(30,30))
+infobox = image.load("images/info.png")
 draw.rect(screen,(255,0,0),(143,466,809,27))
 display.flip()
 screen.blit(image.load("images/LoadScreen2.png"),(0,0)) #second loading screen - means music is loaded and loading is almost done
@@ -866,7 +867,9 @@ class Select(Tool):
                     Button("flip",timesnr.render("Flip horizontally",True,BLACK),self.menux,self.menuy+80,"",200,20,(True,False)),
                     Button("flip",timesnr.render("Flip vertically",True,BLACK),self.menux,self.menuy+100,"",200,20,(False,True)),
                     Button("rotate",timesnr.render("Rotate 90° clockwise",True,BLACK),self.menux,self.menuy+120,"",200,20,-90),
-                    Button("rotate",timesnr.render("Rotate 90° counter-clockwise",True,BLACK),self.menux,self.menuy+140,"",200,20,90)] #menu
+                    Button("rotate",timesnr.render("Rotate 90° counter-clockwise",True,BLACK),self.menux,self.menuy+140,"",200,20,90),
+                    Button("pixelate",timesnr.render("Pixelate selected area",True,BLACK),self.menux,self.menuy+160,"",200,20,
+                            transform.smoothscale(self.selectedbox,(self.width,self.height)))] #menu
         self.menurect = Rect(0,0,200,len(self.menu)*20) #menu rect
         self.fromshape = False #did the selectool come as a result of a shape?
         self.hasbox = False #has the tool a selected box set?
@@ -952,7 +955,9 @@ class Select(Tool):
                     Button("flip",timesnr.render("Flip horizontally",True,BLACK),self.menux,self.menuy+80,"",200,20,(True,False)),
                     Button("flip",timesnr.render("Flip vertically",True,BLACK),self.menux,self.menuy+100,"",200,20,(False,True)),
                     Button("rotate",timesnr.render("Rotate 90° clockwise",True,BLACK),self.menux,self.menuy+120,"",200,20,-90),
-                    Button("rotate",timesnr.render("Rotate 90° counter-clockwise",True,BLACK),self.menux,self.menuy+140,"",200,20,90)] #re-defines menu to move it
+                    Button("rotate",timesnr.render("Rotate 90° counter-clockwise",True,BLACK),self.menux,self.menuy+140,"",200,20,90),
+                    Button("pixelate",timesnr.render("Pixelate selected area",True,BLACK),self.menux,self.menuy+160,"",200,20,
+                            transform.smoothscale(self.selectedbox,(self.width,self.height)))] #re-defines menu to move it
             elif self.hasmenu:
                 if not self.menurect.collidepoint(mx,my):
                     self.hasmenu = False #if user did not click the menu it is removed
@@ -1515,7 +1520,7 @@ class Button():
         if type(self.pic) == Surface:
             screen.blit(self.pic,[self.x,self.y])
         elif type(self.pic) == Rect:
-                draw.rect(screen,self.arg2,self.pic)
+                draw.rect(screen,self.arg2,Rect(self.x,self.y,self.width,self.height))
         if self.func == currtool or self.selected:
             #If it's the selected tool, the border of the button is red, otherwise it's black
             draw.rect(screen,RED,(self.x,self.y,self.width,self.height),1)
@@ -1532,6 +1537,7 @@ class Button():
         global lcol
         global rcol
         global shapetool
+        global custompalbuttons
         global cfiller
         global undo_mem
         global redo_mem
@@ -1587,6 +1593,22 @@ class Button():
             elif mb[2]:
                 rcol = self.arg2
                 rcol = Color(rcol[0],rcol[1],rcol[2],int(alpha/100*255))#sets transparency
+        elif self.func == "addcustom":
+            #add custom color button
+            #adds color button to custompalbuttons
+            length = len(custompalbuttons) #length of custom palette buttons list
+            custompalbuttons.append(Button("color",Rect(170+length*20,506,20,20),170+length*20,506,"",20,20,self.arg2))
+            if len(custompalbuttons) > 4:
+                del custompalbuttons[0] #removes first item of custompalbuttons to keep it below 4
+                #following loop reduces x co-ords of all previous buttons
+                for b in custompalbuttons:
+                    b.x -= 20
+        elif self.func == "alpha":
+            #alpha% scale button
+            alpha += self.arg2 #changes alpha value of colors
+            alpha = min(max(0,alpha),100) #limits alpha% to be from 0 - 100
+            lcol = Color(lcol[0],lcol[1],lcol[2],int((alpha/100)*255)) #sets lcol and rcol
+            rcol = Color(rcol[0],rcol[1],rcol[2],int((alpha/100)*255))
         elif self.func == "save":
             #save function
             if type(currtool) == Select:
@@ -1679,17 +1701,12 @@ class Button():
             selectool.hasmenu = False #turns off menu
         elif self.func == "pixelate":
             #pixelate selected box button
-            for x in range(0,selectool.width,5):
-                for y in range(0,selectool.height,5):
-                    avgcolor = transform.average_color(selectool.selectedbox.subsurface(x,y,5,5)) #gets average color (color of pixel) of area on surface
-                    draw.rect(selectool.selectedbox,avgcolor,(x,y,5,5)) #draws pixel on surface
+            for x in range(0,selectool.width-selectool.width%5,5):
+                for y in range(0,selectool.height-selectool.height%5,5):
+                    avgcolor = transform.average_color(self.arg2.subsurface(x,y,5,5)) #gets average color (color of pixel) of area on surface
+                    draw.rect(self.arg2,avgcolor,(x,y,5,5)) #draws pixel on surface
+            selectool.selectedbox = self.arg2
             selectool.hasmenu = False #turns off menu
-        elif self.func == "alpha":
-            #alpha% scale button
-            alpha += self.arg2 #changes alpha value of colors
-            alpha = min(max(0,alpha),100) #limits alpha% to be from 0 - 100
-            lcol = Color(lcol[0],lcol[1],lcol[2],int((alpha/100)*255)) #sets lcol and rcol
-            rcol = Color(rcol[0],rcol[1],rcol[2],int((alpha/100)*255))
         elif self.func == "stampchange":
             #stamp page change button
             stampage += self.arg2
@@ -1699,7 +1716,7 @@ class Button():
         elif self.func == "sizechange":
             #size change button
             currtool.scroll(screen,self.arg2) #scrolls image
-
+        
     def disptoolbit(self,screen):
         #displays the toolbit so that user can know what button's tool does
         global comicsans
@@ -1815,6 +1832,7 @@ tools = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follow
          Button("undo",undoicon,1120,240,"Undo last action on canvas (Ctrl-Z)",60,60),
          Button("redo",redoicon,1120,310,"Redo last undone action on canvas (Ctrl-Shift-Z)",60,60),
          Button("clear",clearicon,1120,380,"Clear the canvas (Ctrl-Space)",60,60)]
+savebutton,openbutton = 12,13 #keeps track of save button and open button index in tools list
 #stamp's 2D list, each nested list contains the stamps for one stamp page
 stamps = [[Button(yunostamp,yunoface,600,690,"Paste the cute yet scary Yuno Gasai, of whom violence is no problem",50,50),
          Button(kotonohastamp,kotonohaface,660,690,"Paste the shy yet violent Kotonoha Katsura, who easily goes insane",50,50),
@@ -1878,11 +1896,12 @@ palbuttons = [Button("color",Rect(50,506,20,20),50,506,"",20,20,BLACK),
               Button("color",Rect(110,506,20,20),110,506,"",20,20,GREEN),
               Button("color",Rect(130,506,20,20),130,506,"",20,20,BLUE),
               Button("color",Rect(150,506,20,20),150,506,"",20,20,PINK)]#buttons for more specific colors
+custompalbuttons = [] #custom palette buttons (max-size 4)
 draw.rect(screen,BLACK,(299,691,277,39))#border for gradient selector
 gradsel = GradSel(300,692,275,36)#gradient selector
 #----MOUSE COLOR BUTTONS----#
-lcolbutton = Button("color",Rect(300,656,30,30),300,656,"",30,30,lcol) #left mouse color button
-rcolbutton = Button("color",Rect(332,656,30,30),332,656,"",30,30,rcol) #right mouse color buttons
+lcolbutton = Button("addcustom",Rect(300,656,30,30),300,656,"",30,30,lcol) #left mouse color button
+rcolbutton = Button("addcustom",Rect(332,656,30,30),332,656,"",30,30,rcol) #right mouse color buttons
 rcolbutton.selected = True #not really selected, but this allows for the right mouse color button to have a red border
 #----TOOL INFO BOX----#
 info_box = Surface((260,65),SRCALPHA)
@@ -1895,7 +1914,7 @@ bottomstrip.fill((150,150,150,200))
 keytimer = 0 #timer for key pressed - allows for key holding
 keypressed = "" #key pressed by user
 #----VOLUME SLIDER----#
-volslide = volSlider(1150,640,50,100)
+volslide = volSlider(1150,650,50,100)
 #----TEMPORARY DRAWING BOARD----#
 #-for transparency support
 tempdraw = Surface((screen.get_width(),screen.get_height()),SRCALPHA)
@@ -1927,27 +1946,28 @@ while running:
         if e.type == MOUSEBUTTONDOWN:
             mb = mouse.get_pressed()
             mx,my = mouse.get_pos()
+            if e.button == 4:
+                #front scroll
+                currtool.scroll(screen,True)
+                continue
+            elif e.button == 5:
+                #back scroll
+                currtool.scroll(screen,False)
+                continue
             if canvas.collidepoint(mx,my):
                 screen.set_clip(canvas)
                 #if user clicks canvas
                 lastclick = "canvas" #sets last click to canvas
-                if e.button == 4:
-                    #front scroll
-                    currtool.scroll(screen,True)
-                elif e.button == 5:
-                    #back scroll
-                    currtool.scroll(screen,False)
-                else:
-                    if not textool.hastextbox and not selectool.hasbox and not (currtool == shapetool and len(shapetool.points) > 0):
-                        if len(undo_mem) >= 256:
-                            del undo_mem[0] #limits undo_memory at 256
-                        #makes sure we don't have an open text box or an open select box when we click, as that will just close the selected box and shouldn't be saved into undo_memory
-                        redo_mem = [] #makes the redo option empty as it shouldn't do anything once new data is added to the screen
-                        undo_mem.append(screen.copy().subsurface(canvas)) #adds a screenshot to the undo list undo_memory before the user's change to the canvas
-                    if e.button == 1:
-                        currtool.lclick(screen) #calls tool's left click method
-                    elif e.button == 3:
-                        currtool.rclick(screen) #calls tool's right click method
+                if not textool.hastextbox and not selectool.hasbox and not (currtool == shapetool and len(shapetool.points) > 0):
+                    if len(undo_mem) >= 256:
+                        del undo_mem[0] #limits undo_memory at 256
+                    #makes sure we don't have an open text box or an open select box when we click, as that will just close the selected box and shouldn't be saved into undo_memory
+                    redo_mem = [] #makes the redo option empty as it shouldn't do anything once new data is added to the screen
+                    undo_mem.append(screen.copy().subsurface(canvas)) #adds a screenshot to the undo list undo_memory before the user's change to the canvas
+                if e.button == 1:
+                    currtool.lclick(screen) #calls tool's left click method
+                elif e.button == 3:
+                    currtool.rclick(screen) #calls tool's right click method
                 screen.set_clip(None)
             elif fontdropdown.mainrect.collidepoint(mx,my) and currtool == textool or (fontdropdown.menudown and fontdropdown.menurect.collidepoint(mx,my)):
                 #if user clicks font drop down menu
@@ -1975,7 +1995,7 @@ while running:
                 lastclick = "palette"
             else:
                 #if user doesn't click palette or canvas
-                if e.button in [2,4,5]:
+                if e.button == 2:
                     #makes sure nothing happens if the use uses middle click
                     continue
                 lastclick = "" #set last click to "" (which means everything except canvas, drop down boxes and palette)
@@ -2020,7 +2040,7 @@ while running:
                             buttonheld = b
                             mousetimer = time() #sets time clicked and button held
                             b.clickon(screen)
-                for b in palbuttons:
+                for b in palbuttons+custompalbuttons:
                     if b.istouch():
                         lastclick = "palbutton"
                         b.clickon(screen)
@@ -2040,9 +2060,11 @@ while running:
                 screen.set_clip(canvas)
                 currtool.outside() #runs current tool's outside function, as user clicked outside of canvas
                 screen.set_clip(None)
-                #checks if user clicked a tool button (do not want to call this before currtool.outside() since this changes currtool)
                 for t in tools:
                     if t.istouch():
+                        if t.func in ["save","open"]:
+                            buttonheld = t #makes t the button held
+                            break #doesn't do it on mouse down for save and open - does it on mouseup to avoid it acting funny
                         if t.func != currtool:
                             screen.blit(toolboxfiller,(20,90)) #blits toolbox when user changes tools
                             #tool button clicked
@@ -2061,6 +2083,16 @@ while running:
             if lastclick == "canvas":
                 if e.button not in [4,5]:
                     currtool.mouseup(screen) #tool's mouseup method
+            else:
+                #checks if user clicked a tool button
+                #does on mouseup so save and open don't act all funny
+                for i in [savebutton,openbutton]:
+                    opt = tools[i] #option selected
+                    if opt.istouch():
+                        if opt == buttonheld:
+                            opt.clickon(screen)
+                        break
+            buttonheld = Button("",Rect(0,0,0,0),0,0,"",0,0,BLACK)
             mousetimer = 0 #resets mouse timer
         if e.type == KEYDOWN:
             #----KEY PRESS FUNCTIONS----#
@@ -2181,7 +2213,7 @@ while running:
     if currtool == shapetool:
         shapedropdown.drawbox(screen)
     #----DRAWING PALETTE----#
-    for b in palbuttons:
+    for b in palbuttons+custompalbuttons:
         b.display(screen)
     screen.blit(palette,(palrect[0],palrect[1]))
     #----DRAWING GRADIENT SELECTOR----#
