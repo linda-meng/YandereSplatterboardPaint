@@ -31,13 +31,13 @@ display.flip()
 #MUSIC (Really lags up the program startup)
 init()
 mixer.init()
-music = [mixer.Sound("music/My_Dearest.ogg")]
-''',
+music = [mixer.Sound("music/My_Dearest.ogg"),
         mixer.Sound("music/MiraiNikkiOP.ogg"),
         mixer.Sound("music/InnocentBlue.ogg"),
         mixer.Sound("music/Lillium.ogg"),
         mixer.Sound("music/BoukenDesho.ogg"),
-        mixer.Sound("music/NeverSayNever.ogg")
+        mixer.Sound("music/NeverSayNever.ogg")]
+'''
 '''
 shuffle(music) #shuffles the music
 music[0].play()
@@ -89,11 +89,13 @@ pixelateicon = transform.scale(image.load("images/pixelateicon.gif"),(40,40))
 spraycan = transform.scale(image.load("images/spraypaint.png"),(40,40))
 ibeam = transform.scale(image.load("images/ibeam.png"),(40,40))
 crosscursor = transform.scale(image.load("images/crosscursor.gif"),(40,40))
+magicwand = image.load("images/magicwand.png")
 saveicon = transform.scale(image.load("images/saveicon.png"),(60,60))
 openicon = transform.scale(image.load("images/openicon.png"),(60,60))
 undoicon = transform.scale(image.load("images/undo.png"),(60,60))
 redoicon = transform.flip(undoicon,True,False)
 clearicon = transform.scale(image.load("images/Red_X.png"),(60,60))
+clipboard = image.load("images/clipboard.png")
 yunoface = transform.smoothscale(image.load("images/yunoface.png"),(50,50))
 yunogasai = image.load("images/yunogasai.png")
 yandereyuno = image.load("images/yandereyuno.png")
@@ -869,9 +871,14 @@ class Select(Tool):
                     Button("rotate",timesnr.render("Rotate 90° clockwise",True,BLACK),self.menux,self.menuy+120,"",200,20,-90),
                     Button("rotate",timesnr.render("Rotate 90° counter-clockwise",True,BLACK),self.menux,self.menuy+140,"",200,20,90),
                     Button("pixelate",timesnr.render("Pixelate selected area",True,BLACK),self.menux,self.menuy+160,"",200,20,
-                            transform.smoothscale(self.selectedbox,(self.width,self.height)))] #menu
+                            transform.smoothscale(self.selectedbox,(self.width,self.height))),
+                    Button("greyscale",timesnr.render("Greyscale filter",True,BLACK),self.menux,self.menuy+180,"",200,20,
+                            transform.smoothscale(self.selectedbox,(self.width,self.height))),
+                    Button("settranscol",timesnr.render("Set transparent color",True,BLACK),self.menux,self.menuy+200,"",200,20)] #menu
+        self.settranscol = False
         self.menurect = Rect(0,0,200,len(self.menu)*20) #menu rect
         self.fromshape = False #did the selectool come as a result of a shape?
+        self.pressedsave = False #did user press save?
         self.hasbox = False #has the tool a selected box set?
         self.forming = False #is the box being formed?
         self.dx,self.dy = 0,0 #difference in x and y between mouse and corner of selectedbox
@@ -884,6 +891,18 @@ class Select(Tool):
         global canvas
         global currtool
         mx,my = mouse.get_pos()
+        if self.settranscol:
+            #if we are setting transparent color, we do that
+            if Rect(self.x,self.y,self.width,self.height).collidepoint(mx,my):
+                #if user presses select box we set transparent color
+                boxX,boxY = mx-self.x,my-self.y #sets co-ords of mouse relative to selected box
+                try:
+                    scaledbox = transform.smoothscale(self.selectedbox,(self.width,self.height)) #creates scaled version of selected box
+                except:
+                    scaledbox = transform.scale(self.selectedbox,(self.width,self.height))
+                self.selectedbox.set_colorkey(scaledbox.get_at((boxX,boxY))) #sets transparent colorkey
+            self.settranscol = False #turns off boolean
+            return 0
         self.clicked = 0
         if self.hasmenu:
             self.clicked = 1 #if there exists a menu, we treat it as a right click - this is so the box doesn't move when cancelling a menu item
@@ -891,11 +910,14 @@ class Select(Tool):
             if not self.menurect.collidepoint(mx,my):
                 self.hasmenu = False #if user did not click the menu it is removed
             else:
-                #if user clicks the menu we handle the clicking
-                for b in self.menu:
-                    if b.istouch():
-                        b.clickon(screen) #clicks on button
-                        break
+                #if user clicks the menu (not first button since that is special and needs to be pressed on mouse up) we handle the clicking
+                if self.menu[0].istouch():
+                        self.pressedsave = True #sets pressedsave boolean to true if user pressed save button
+                else:
+                    for b in self.menu[1:]:
+                        if b.istouch():
+                            b.clickon(screen) #clicks on button
+                            break
         elif self.hasbox:
             #check if they press a size change point on the box
             sizepoints = [(self.x-1,self.y-1),(self.x+self.width+1,self.y-1),
@@ -938,6 +960,10 @@ class Select(Tool):
         global canvas
         global currtool
         mx,my = mouse.get_pos()
+        if self.settranscol:
+            #if we are setting transparent color we turn off the boolean on right click
+            self.settranscol = False
+            return 0
         self.clicked = 1
         if self.hasbox:
             if Rect(self.x,self.y,self.width,self.height).collidepoint(mx,my) and not self.hasmenu:
@@ -945,6 +971,9 @@ class Select(Tool):
                 self.menux,self.menuy = mx,my
                 self.menurect = Rect(self.menux,self.menuy,200,len(self.menu)*20)
                 self.hasmenu = True
+                if self.menuy+len(self.menu)*20 > screen.get_height():
+                    #if the menu goes off the canvas, we move menuy up
+                    self.menuy -= (self.menuy+len(self.menu)*20)-screen.get_height()
                 self.menu = [Button("save",timesnr.render("Save selected area as...",True,BLACK),self.menux,self.menuy,"",200,20,
                             transform.smoothscale(self.selectedbox,(self.width,self.height))),
                     Button("copy",timesnr.render("Copy (Ctrl-C)",True,BLACK),self.menux,self.menuy+20,"",200,20,
@@ -957,16 +986,22 @@ class Select(Tool):
                     Button("rotate",timesnr.render("Rotate 90° clockwise",True,BLACK),self.menux,self.menuy+120,"",200,20,-90),
                     Button("rotate",timesnr.render("Rotate 90° counter-clockwise",True,BLACK),self.menux,self.menuy+140,"",200,20,90),
                     Button("pixelate",timesnr.render("Pixelate selected area",True,BLACK),self.menux,self.menuy+160,"",200,20,
-                            transform.smoothscale(self.selectedbox,(self.width,self.height)))] #re-defines menu to move it
+                            transform.smoothscale(self.selectedbox,(self.width,self.height))),
+                    Button("greyscale",timesnr.render("Greyscale filter",True,BLACK),self.menux,self.menuy+180,"",200,20,
+                            transform.smoothscale(self.selectedbox,(self.width,self.height))),
+                    Button("settranscol",timesnr.render("Set transparent color",True,BLACK),self.menux,self.menuy+200,"",200,20)] #re-defines menu to move it
             elif self.hasmenu:
                 if not self.menurect.collidepoint(mx,my):
                     self.hasmenu = False #if user did not click the menu it is removed
                 else:
-                    #if user clicks the menu we handle the clicking
-                    for b in self.menu:
-                        if b.istouch():
-                            b.clickon(screen) #clicks on button
-                            break
+                    #if user clicks the menu (not first button since that is special and needs to be pressed on mouse up) we handle the clicking
+                    if self.menu[0].istouch():
+                        self.pressedsave = True #sets pressedsave boolean to true if user pressed save button
+                    else:
+                        for b in self.menu[1:]:
+                            if b.istouch():
+                                b.clickon(screen) #clicks on button
+                                break
             else:
                 if not Rect(self.x,self.y,self.width,self.height).collidepoint(mx,my):
                     #if the use clicks outside of the box and no menu is open we remove the box
@@ -1005,6 +1040,12 @@ class Select(Tool):
             draw.rect(screen,WHITE,(self.x,self.y,self.width,self.height)) #erases area where selected image is
             cfiller = screen.copy().subsurface(canvas)
             self.forming = False
+        elif self.hasmenu:
+            #if there exists a menu we check if we moused up over the first button (the save button, since it opens a new window we need to open it on mouseup not mousedown
+            #otherwise it will close the window on mouse up after mouse down)
+            if self.menu[0].istouch() and self.pressedsave:
+                self.menu[0].clickon(screen)
+                self.pressedsave = False
     def cont(self,screen):
         global cfiller
         mx,my = mouse.get_pos()
@@ -1057,6 +1098,7 @@ class Select(Tool):
             if self.fromshape:
                 currtool = shapetool #sets currtool to shapetool if it's from shape
                 self.fromshape = False
+        self.settranscol = False #turns off set transparent color
         self.hasmenu = False #turns off menu
     def keypress(self,screen,keypressed):
         #handles key methods for a box
@@ -1079,6 +1121,10 @@ class Select(Tool):
             boxcp = (transform.smoothscale(self.selectedbox,(self.width,self.height)),(self.x,self.y)) #sets the clipboard's image and coordinates
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()
+        if self.settranscol:
+            #if we are setting transparent color, we draw a magic wand instead
+            screen.blit(magicwand,(mx,my))
+            return 0
         draw.line(screen,BLACK,(mx,my-10),(mx,my+10),2) #drawing crosshairs
         draw.line(screen,BLACK,(mx-10,my),(mx+10,my),2)
         screen.blit(self.icon,(mx-20,my-20))
@@ -1563,7 +1609,7 @@ class Button():
             textool.textbox.changefont(textool.textbox.fontfamily,newfontsize) #changes fontsize
         elif self.func == "textdec":
             #text decorator button
-            exec("textool.textbox.tbfont.set_"+self.arg2+"(not textool.textbox.tbfont.get_"+self.arg2+"())") #sets textool's decor
+            exec("textool.textbox.tbfont.set_"+self.arg2+"(not textool.textbox.tbfont.get_"+self.arg2+"())") #sets textool's decor to be opposite what it is
         elif self.func == "shape":
             #shape change button
             currtool = shapetool
@@ -1680,11 +1726,32 @@ class Button():
             draw.rect(screen,WHITE,canvas) #fills canvas white
             tempdraw.fill((255,255,255,0)) #clears tempdraw
         elif self.func in ["copy","cut"]:
-            #copy button
+            #copy/cut button
             if self.func == "cut":
                 selectool.hasbox = False #turns off box in selectool
             selectool.hasmenu = False #turns off menu
             boxcp = (self.arg2,(canvas[0],canvas[1])) #sets clipboard to copied object
+        elif self.func == "paste":
+            #paste button
+            if boxcp != None:
+                if None not in boxcp:
+                    if len(undo_mem) >= 256:
+                            del undo_mem[0] #removes the last thing undo_memorized if we're over the limit
+                    undo_mem.append(screen.copy().subsurface(canvas)) #appends current screen to undo list
+                    redo_mem = []
+                    screen.set_clip(canvas)
+                    if selectool.hasbox:
+                        screen.blit(selectool.selectedbox,(selectool.x,selectool.y))
+                    #we blit the image to where we copied it from in a select box
+                    selectool.selectedbox = boxcp[0]
+                    selectool.x = boxcp[1][0]
+                    selectool.y = boxcp[1][1]
+                    selectool.width = boxcp[0].get_width()
+                    selectool.height = boxcp[0].get_height() #setting up the box to contain the image
+                    selectool.hasbox = True
+                    cfiller = screen.copy().subsurface(canvas)
+                    currtool = selectool
+                    screen.set_clip(None)
         elif self.func == "delete":
             #delete button
             #deletes selectool's box
@@ -1707,6 +1774,19 @@ class Button():
                     draw.rect(self.arg2,avgcolor,(x,y,5,5)) #draws pixel on surface
             selectool.selectedbox = self.arg2
             selectool.hasmenu = False #turns off menu
+        elif self.func == "greyscale":
+            #greyscale button
+            for x in range(0,selectool.width):
+                for y in range(0,selectool.height):
+                    r,g,b,a = self.arg2.get_at((x,y)) #gets color at location
+                    avg = (r+g+b)//3 #average of r-g-b values
+                    self.arg2.set_at((x,y),(avg,avg,avg)) #sets r,g,b to avg
+            selectool.selectedbox = self.arg2
+            selectool.hasmenu = False
+        elif self.func == "settranscol":
+            #set transparent color button
+            selectool.settranscol = True #turns on selectool settranscol boolean
+            selectool.hasmenu = False
         elif self.func == "stampchange":
             #stamp page change button
             stampage += self.arg2
@@ -1831,7 +1911,8 @@ tools = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follow
          Button("open",openicon,1120,170,"Open a previously saved image (Ctrl-O) - right click to open without deleting current work (Ctrl-Shift-O)",60,60),
          Button("undo",undoicon,1120,240,"Undo last action on canvas (Ctrl-Z)",60,60),
          Button("redo",redoicon,1120,310,"Redo last undone action on canvas (Ctrl-Shift-Z)",60,60),
-         Button("clear",clearicon,1120,380,"Clear the canvas (Ctrl-Space)",60,60)]
+         Button("clear",clearicon,1120,380,"Clear the canvas (Ctrl-Space)",60,60),
+         Button("paste",clipboard,1120,450,"Paste (Ctrl-V)",60,60)]
 savebutton,openbutton = 12,13 #keeps track of save button and open button index in tools list
 #stamp's 2D list, each nested list contains the stamps for one stamp page
 stamps = [[Button(yunostamp,yunoface,600,690,"Paste the cute yet scary Yuno Gasai, of whom violence is no problem",50,50),
@@ -1903,6 +1984,9 @@ gradsel = GradSel(300,692,275,36)#gradient selector
 lcolbutton = Button("addcustom",Rect(300,656,30,30),300,656,"",30,30,lcol) #left mouse color button
 rcolbutton = Button("addcustom",Rect(332,656,30,30),332,656,"",30,30,rcol) #right mouse color buttons
 rcolbutton.selected = True #not really selected, but this allows for the right mouse color button to have a red border
+#----INFO BUTTONS----#
+#buttons that don't do anything but display info
+infobuttons = [Button("",infobox,364,656,"To the left are Mouse color indicators - click them to add to custom colors",20,20)]
 #----TOOL INFO BOX----#
 info_box = Surface((260,65),SRCALPHA)
 draw.rect(info_box,(185,185,185,185),(0,0,260,65))
@@ -2087,12 +2171,16 @@ while running:
                 #checks if user clicked a tool button
                 #does on mouseup so save and open don't act all funny
                 for i in [savebutton,openbutton]:
-                    opt = tools[i] #option selected
-                    if opt.istouch():
-                        if opt == buttonheld:
+                    opt = tools[i] #option (save or open) selected
+                    if opt.istouch():                
+                        if e.button == 3:
+                            #handles right clicking on button
+                            opt.clickon(screen,True)
+                        else:
+                            #handles left clicking on button
                             opt.clickon(screen)
                         break
-            buttonheld = Button("",Rect(0,0,0,0),0,0,"",0,0,BLACK)
+            buttonheld = Button("",Rect(0,0,0,0),0,0,"",0,0,BLACK) #clears held button
             mousetimer = 0 #resets mouse timer
         if e.type == KEYDOWN:
             #----KEY PRESS FUNCTIONS----#
@@ -2219,7 +2307,7 @@ while running:
     #----DRAWING GRADIENT SELECTOR----#
     gradsel.draw(screen)
     #----DRAWING BUTTONS----#
-    for b in tools:
+    for b in tools+infobuttons:
         b.display(screen)
     if currtool == textool:
         for b in fontsizebuttons:
@@ -2400,7 +2488,7 @@ while running:
                           (currtool.x+(currtool.width+1)//2,currtool.y-1),(currtool.x+(currtool.width+1)//2,currtool.y+currtool.height+1),
                           (currtool.x-1,currtool.y+(currtool.height+1)//2),(currtool.x+currtool.width+1,currtool.y+(currtool.height+1)//2)] #points in which the size of the box can be altered
             for x,y in sizepoints:
-                draw.rect(screen,(255,50,50,150),(x-5,y-5,10,10),2)
+                draw.rect(screen,RED,(x-5,y-5,10,10),2)
                 draw.rect(screen,WHITE,(x-4,y-4,8,8))
         screen.set_clip(None)
         #handles selected box's menu
@@ -2416,10 +2504,10 @@ while running:
         coords = "Off Canvas"
     screen.blit(lucidaconsole.render(coords+" L-Col: "+str(lcol[:3])+" R-Col: "+str(rcol[:3]),True,BLACK),(21,733))
     #DRAWS TOOLBIT
-    #following loop displays toolbit if the mouse is touching the button
-    for t in tools:
-        if t.istouch():
-            t.disptoolbit(screen)
+    #following loop displays toolbit if the mouse is touching a tool button or an info button
+    for b in tools+infobuttons:
+        if b.istouch():
+            b.disptoolbit(screen)
             break
     #DRAWS MOUSE SPRITE
     if canvas.collidepoint(mx,my) and (not selectool.hasmenu or not selectool.menurect.collidepoint(mx,my)):
