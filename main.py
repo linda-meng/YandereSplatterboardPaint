@@ -2261,7 +2261,7 @@ while running:
             elif kp[K_v] and (kp[K_LCTRL] or kp[K_RCTRL]):
                 #CTRL-V
                 #pastes clipboard image
-                if type(boxcp) != None:
+                if boxcp != None:
                     if None not in boxcp:
                         if len(undo_mem) >= 256:
                             del undo_mem[0] #removes the last thing undo_memorized if we're over the limit
