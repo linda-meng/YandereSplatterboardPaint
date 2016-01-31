@@ -136,6 +136,7 @@ yukinagato = image.load("images/yukinagato.png").convert_alpha()
 flipicon = image.load("images/flip.png").convert_alpha()
 rotateicon = image.load("images/rotate.png").convert_alpha()
 redarrow = transform.scale(image.load("images/RedArrowDown.png"),(30,30)).convert_alpha()
+redtriangle = image.load("images/redtriangle.png").convert_alpha()
 infobox = image.load("images/info.png").convert_alpha()
 draw.rect(screen,(255,0,0),(143,466,809,27))
 display.flip()
@@ -269,12 +270,12 @@ class DropDownBox():
             col = LIGHT_GREY
         else:
             col = WHITE
-        smallerd = min(self.height,self.width) #smaller of width and height
+        smallerd = min(self.height,self.width) #smaller dimension (of width and height)
         draw.rect(screen,col,(self.x,self.y,self.width+smallerd,self.height)) #draws box
-        draw.rect(screen,BLACK,(self.x,self.y,self.width+smallerd,self.height),1) #draws box's border
         screen.blit(comicsans.render(self.name,True,BLACK),(self.x+2,self.y+self.height//2-10))
-        draw.rect(screen,GREY,(self.x+self.width,self.y,smallerd,smallerd)) #draws box around arrow
-        screen.blit(transform.scale(redarrow,(smallerd,smallerd)),(self.x+self.width,self.y)) #draws drop down box's arrow
+        draw.rect(screen,LIGHT_GREY,(self.x+self.width,self.y,smallerd,smallerd)) #draws box around arrow
+        screen.blit(transform.scale(redtriangle,(smallerd,smallerd)),(self.x+self.width,self.y)) #draws drop down box's arrow
+        draw.rect(screen,BLACK,(self.x,self.y,self.width+smallerd,self.height),1) #draws box's border
     def istouch(self):
         #states whether mouse is touching the mainrect of drop down menu
         mx,my = mouse.get_pos()
@@ -1594,19 +1595,7 @@ class Button():
         rectform = Rect(self.x,self.y,self.width,self.height)
         return rectform.collidepoint(mx,my)
     def clickon(self,screen,rclick=False):
-        global textool
-        global currtool
-        global lcol
-        global rcol
-        global shapetool
-        global custompalbuttons
-        global cfiller
-        global undo_mem
-        global redo_mem
-        global boxcp
-        global alpha
-        global stampage
-        global tools
+        global textool,currtool,lcol,rcol,shapetool,custompalbuttons,cfiller,undo_mem,redo_mem,boxcp,alpha,stampage,tools
         if issubclass(type(self.func),Tool):
             #tool change button
             currtool = self.func
@@ -1673,18 +1662,20 @@ class Button():
             rcol = Color(rcol[0],rcol[1],rcol[2],int((alpha/100)*255))
         elif self.func == "save":
             #save function
-            if type(currtool) == Select:
-                currtool.hasbox = False
-            elif type(currtool) == Text:
-                currtool.hastextbox = False
             mouse.set_visible(True)
             savename = filedialog.asksaveasfilename(defaultextension=".jpg")
             if savename:
+                if type(currtool) == Select:
+                    currtool.hasbox = False
+                elif type(currtool) == Text:
+                    currtool.hastextbox = False
                 if self.arg2 == None:
                     #if we are not copying a selected surface, we copy the canvas
                     image.save(screen.copy().subsurface(canvas), savename)
                 else:
                     #saves selected surface
+                    if savename[-4:] == ".png":
+                        self.arg2 = self.arg2.convert_alpha() #converts surface into one with SRCALPHA to support alpha
                     image.save(self.arg2, savename)
             if self.arg2 != None:
                 screen.blit(self.arg2,(selectool.x,selectool.y)) #blits the image to the screen, as we know the select tool is the only one who can call this
@@ -1890,7 +1881,7 @@ spraytool = Spray() #spray tool
 filltool = Fill() #fill tool
 blurtool = Blur() #blur tool
 pixelatetool = Pixelate() #pixelate tool
-#stamps
+#STAMPS
 #--page1
 yunostamp = Stamp(yunogasai,yandereyuno) #Yuno Gasai stamp
 kotonohastamp = Stamp(kotonohakatsura,yanderekotonoha) #Kotonoha Katsura stamp
