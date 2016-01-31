@@ -4,6 +4,7 @@ from math import *
 from tkinter import *
 from tkinter import filedialog as filedialog
 from pygame import *
+from pygame import time as pytime
 from time import *
 font.init()
 #----METADATA----#
@@ -21,7 +22,7 @@ try:
     display.set_icon(transform.scale(image.load("images/icon.jpg"),(32,32))) #sets icon
 except:
     pass
-display.set_caption("YANDERE SPLATTERBOARD - PAINT PROGRAM BY YOU ZHOU ~~~~~~GREAT ART TAKES DEADICATION~~~~~~","Yandere Splatterboard")
+display.set_caption("YANDERE SPLATTERBOARD - PAINT PROGRAM BY YTTRIUM Z ~~~~~~GREAT ART TAKES DEADICATION~~~~~~","Yandere Splatterboard")
 #----LOADING SCREEN----#
 screen.blit(image.load("images/LoadScreen.png"),(0,0))
 draw.rect(screen,(255,0,0),(143,466,80,27))
@@ -69,68 +70,76 @@ lucidaconsole = font.SysFont("lucidaconsole",15)
 impact = font.SysFont("impact",15)
 vladimirscript = font.SysFont("vladimirscript",15)
 chiller = font.SysFont("chiller",15)
-titlefont = font.SysFont("chiller",36)
+titlefont = font.SysFont("chiller",48)
 draw.rect(screen,(255,0,0),(143,466,580,27))
 display.flip()
 #SPRITES AND IMAGES
-pencilsprite = transform.scale(image.load("images/pencil.png"),(40,40))
-eraser = transform.scale(image.load("images/eraser.gif"),(40,40))
-paintbrush = transform.scale(image.load("images/paintbrush.png"),(40,40))
-linesprite = transform.scale(image.load("images/linesprite.png"),(40,40))
-dropper = transform.scale(image.load("images/dropper.png"),(40,40))
-fancyA = transform.scale(image.load("images/A.png"),(40,40))
-roundedrect = transform.scale(image.load("images/roundrect.png"),(40,40))
-ellipsesprite = transform.scale(image.load("images/ellipse.png"),(40,40))
-polygonsprite = transform.scale(image.load("images/polygon.png"),(40,40))
-dottedbox = transform.scale(image.load("images/dottedbox.gif"),(40,40))
-fillbucket = image.load("images/fillbucket.png")
-bluricon = transform.scale(image.load("images/waterdrop.png"),(40,40))
-pixelateicon = transform.scale(image.load("images/pixelateicon.gif"),(40,40))
-spraycan = transform.scale(image.load("images/spraypaint.png"),(40,40))
-ibeam = transform.scale(image.load("images/ibeam.png"),(40,40))
-crosscursor = transform.scale(image.load("images/crosscursor.gif"),(40,40))
-magicwand = image.load("images/magicwand.png")
-saveicon = transform.scale(image.load("images/saveicon.png"),(60,60))
-openicon = transform.scale(image.load("images/openicon.png"),(60,60))
-undoicon = transform.scale(image.load("images/undo.png"),(60,60))
+pencilsprite = transform.scale(image.load("images/pencil.png"),(40,40)).convert_alpha()
+eraser = transform.scale(image.load("images/eraser.gif"),(40,40)).convert_alpha()
+paintbrush = transform.scale(image.load("images/paintbrush.png"),(40,40)).convert_alpha()
+linesprite = transform.scale(image.load("images/linesprite.png"),(40,40)).convert_alpha()
+dropper = transform.scale(image.load("images/dropper.png"),(40,40)).convert_alpha()
+fancyA = transform.scale(image.load("images/A.png"),(40,40)).convert_alpha()
+roundedrect = transform.scale(image.load("images/roundrect.png"),(40,40)).convert_alpha()
+ellipsesprite = transform.scale(image.load("images/ellipse.png"),(40,40)).convert_alpha()
+polygonsprite = transform.scale(image.load("images/polygon.png"),(40,40)).convert_alpha()
+dottedbox = transform.scale(image.load("images/dottedbox.gif"),(40,40)).convert_alpha()
+fillbucket = image.load("images/fillbucket.png").convert_alpha()
+bluricon = transform.scale(image.load("images/waterdrop.png"),(40,40)).convert_alpha()
+pixelateicon = transform.scale(image.load("images/pixelateicon.gif"),(40,40)).convert_alpha()
+spraycan = transform.scale(image.load("images/spraypaint.png"),(40,40)).convert_alpha()
+ibeam = transform.scale(image.load("images/ibeam.png"),(40,40)).convert_alpha()
+crosscursor = transform.scale(image.load("images/crosscursor.gif"),(40,40)).convert_alpha()
+magicwand = image.load("images/magicwand.png").convert_alpha()
+saveicon = transform.scale(image.load("images/saveicon.png"),(60,60)).convert_alpha()
+openicon = transform.scale(image.load("images/openicon.png"),(60,60)).convert_alpha()
+undoicon = transform.scale(image.load("images/undo.png"),(60,60)).convert_alpha()
 redoicon = transform.flip(undoicon,True,False)
-clearicon = transform.scale(image.load("images/Red_X.png"),(60,60))
-clipboard = image.load("images/clipboard.png")
-yunoface = transform.smoothscale(image.load("images/yunoface.png"),(50,50))
-yunogasai = image.load("images/yunogasai.png")
-yandereyuno = image.load("images/yandereyuno.png")
-kotonohaface = transform.smoothscale(image.load("images/kotonoha.png"),(50,50))
-kotonohakatsura = image.load("images/kotonohakatsura.png")
-yanderekotonoha = image.load("images/yanderekotonoha.png")
-lucyface = transform.smoothscale(image.load("images/lucyface.png"),(50,50))
-lucy = image.load("images/lucy.png")
-yanderelucy = image.load("images/yanderelucy.png")
-inoriface = transform.smoothscale(image.load("images/inoriface.png"),(50,50))
-inoriyuzuriha = image.load("images/inoriyuzuriha.png")
-yandereinori = image.load("images/yandereinori.png")
-tokoface = transform.smoothscale(image.load("images/tokoface.png"),(50,50))
-tokofukawa = image.load("images/tokofukawa.png")
-genocidersyo = image.load("images/genocidersyo.png")
-ryokoface = transform.smoothscale(image.load("images/ryokoface.png"),(50,50))
-ryokoasakura = image.load("images/ryokoasakura.png")
-yandereryoko = image.load("images/yandereryoko.png")
-yukkiface = transform.smoothscale(image.load('images/yukkiface.png'),(50,50))
-yukiteruamano = image.load("images/yukiteruamano.png")
-makotoface = transform.smoothscale(image.load("images/makotoface.png"),(50,50))
-makotoitou = image.load("images/makotoitou.png")
-koutaface = transform.smoothscale(image.load("images/koutaface.png"),(50,50))
-kouta = image.load("images/kouta.png")
-shuface = transform.smoothscale(image.load("images/shuface.png"),(50,50))
-shuouma = image.load("images/shuouma.png")
-byakuyaface = transform.smoothscale(image.load("images/byakuyaface.png"),(50,50))
-byakuyatogami = image.load("images/byakuyatogami.png")
-yukiface = transform.smoothscale(image.load("images/yukiface.png"),(50,50))
-yukinagato = image.load("images/yukinagato.png")
-redarrow = transform.scale(image.load("images/RedArrowDown.png"),(30,30))
-infobox = image.load("images/info.png")
+clearicon = transform.scale(image.load("images/Red_X.png"),(60,60)).convert_alpha()
+clipboard = image.load("images/clipboard.png").convert_alpha()
+mirainikkibackdrop = image.load("images/mirainikkibackdrop.jpg").convert()
+schooldaysbackdrop = image.load('images/schooldaysbackdrop.jpg').convert()
+elfenliedbackdrop = image.load('images/elfenliedbackdrop.jpg').convert()
+guiltycrownbackdrop = image.load("images/guiltycrownbackdrop.jpg").convert()
+danganronpabackdrop = image.load('images/danganronpabackdrop.png').convert()
+haruhibackdrop = image.load('images/haruhibackdrop.jpg').convert()
+yunoface = transform.smoothscale(image.load("images/yunoface.png"),(50,50)).convert_alpha()
+yunogasai = image.load("images/yunogasai.png").convert_alpha()
+yandereyuno = image.load("images/yandereyuno.png").convert_alpha()
+kotonohaface = transform.smoothscale(image.load("images/kotonoha.png"),(50,50)).convert_alpha()
+kotonohakatsura = image.load("images/kotonohakatsura.png").convert_alpha()
+yanderekotonoha = image.load("images/yanderekotonoha.png").convert_alpha()
+lucyface = transform.smoothscale(image.load("images/lucyface.png"),(50,50)).convert_alpha()
+lucy = image.load("images/lucy.png").convert_alpha()
+yanderelucy = image.load("images/yanderelucy.png").convert_alpha()
+inoriface = transform.smoothscale(image.load("images/inoriface.png"),(50,50)).convert_alpha()
+inoriyuzuriha = image.load("images/inoriyuzuriha.png").convert_alpha()
+yandereinori = image.load("images/yandereinori.png").convert_alpha()
+tokoface = transform.smoothscale(image.load("images/tokoface.png"),(50,50)).convert_alpha()
+tokofukawa = image.load("images/tokofukawa.png").convert_alpha()
+genocidersyo = image.load("images/genocidersyo.png").convert_alpha()
+ryokoface = transform.smoothscale(image.load("images/ryokoface.png"),(50,50)).convert_alpha()
+ryokoasakura = image.load("images/ryokoasakura.png").convert_alpha()
+yandereryoko = image.load("images/yandereryoko.png").convert_alpha()
+yukkiface = transform.smoothscale(image.load('images/yukkiface.png'),(50,50)).convert_alpha()
+yukiteruamano = image.load("images/yukiteruamano.png").convert_alpha()
+makotoface = transform.smoothscale(image.load("images/makotoface.png"),(50,50)).convert_alpha()
+makotoitou = image.load("images/makotoitou.png").convert_alpha()
+koutaface = transform.smoothscale(image.load("images/koutaface.png"),(50,50)).convert_alpha()
+kouta = image.load("images/kouta.png").convert_alpha()
+shuface = transform.smoothscale(image.load("images/shuface.png"),(50,50)).convert_alpha()
+shuouma = image.load("images/shuouma.png").convert_alpha()
+byakuyaface = transform.smoothscale(image.load("images/byakuyaface.png"),(50,50)).convert_alpha()
+byakuyatogami = image.load("images/byakuyatogami.png").convert_alpha()
+yukiface = transform.smoothscale(image.load("images/yukiface.png"),(50,50)).convert_alpha()
+yukinagato = image.load("images/yukinagato.png").convert_alpha()
+flipicon = image.load("images/flip.png").convert_alpha()
+rotateicon = image.load("images/rotate.png").convert_alpha()
+redarrow = transform.scale(image.load("images/RedArrowDown.png"),(30,30)).convert_alpha()
+infobox = image.load("images/info.png").convert_alpha()
 draw.rect(screen,(255,0,0),(143,466,809,27))
 display.flip()
-screen.blit(image.load("images/LoadScreen2.png"),(0,0)) #second loading screen - means music is loaded and loading is almost done
+screen.blit(image.load("images/LoadScreen2.png"),(0,0)) #second loading screen - just for fun right before loaded
 display.flip()
 #Finalizes Screen
 screen.blit(image.load("images/background.png"),(0,0))
@@ -230,16 +239,22 @@ class Textbox():
 #-----------------------------DROPDOWNBOX
 class DropDownBox():
     #drop down box
-    def __init__(self,x,y,items,name):
+    def __init__(self,x,y,items,name,width=None,height=None):
         self.items = items #list of all the items, all items are buttons
-        self.width = max([i.width for i in items]) #width of dropdown box becomes maximum width of item in list
-        self.height = max([i.height for i in items]) #same idea for height as width, but for height
+        if width == None:
+            self.width = max([i.width for i in items]) #width of dropdown box becomes maximum width of item in list if no width is given
+        else:
+            self.width = width #sets self.width to be width
+        if height == None:
+            self.height = max([i.height for i in items]) #same idea for height as width, but for height
+        else:
+            self.height = height #sets self.height to be height
         self.name = name #display of drop down
         self.x = x
         self.y = y #co-ords
         self.itemrects = [Rect(i.x,i.y,i.width,i.height) for i in self.items]#item rects
         self.menudown = False #is the menu down?
-        self.mainrect = Rect(self.x,self.y,self.width+20,self.height)#main rect of the drop down box (not it's items)
+        self.mainrect = Rect(self.x,self.y,self.width+min(self.width,self.height),self.height)#main rect of the drop down box (not it's items)
         totwidth = sum([i.width for i in self.items])#sum of all the item's widths
         totheight = sum([i.height for i in self.items])#sum of all the item's heights
         self.menurect = Rect(self.x,self.y+self.height,totwidth,totheight) #rect of the menu portion of the dropdown box
@@ -254,11 +269,12 @@ class DropDownBox():
             col = LIGHT_GREY
         else:
             col = WHITE
-        draw.rect(screen,col,(self.x,self.y,self.width+20,self.height)) #draws box
-        draw.rect(screen,BLACK,(self.x,self.y,self.width+20,self.height),1) #draws box's border
-        screen.blit(comicsans.render(self.name,True,BLACK),(self.x+2,self.y+2))
-        draw.rect(screen,GREY,(self.x+self.width,self.y,20,20)) #draws box around arrow
-        screen.blit(transform.scale(redarrow,(20,20)),(self.x+self.width,self.y)) #draws drop down box's arrow
+        smallerd = min(self.height,self.width) #smaller of width and height
+        draw.rect(screen,col,(self.x,self.y,self.width+smallerd,self.height)) #draws box
+        draw.rect(screen,BLACK,(self.x,self.y,self.width+smallerd,self.height),1) #draws box's border
+        screen.blit(comicsans.render(self.name,True,BLACK),(self.x+2,self.y+self.height//2-10))
+        draw.rect(screen,GREY,(self.x+self.width,self.y,smallerd,smallerd)) #draws box around arrow
+        screen.blit(transform.scale(redarrow,(smallerd,smallerd)),(self.x+self.width,self.y)) #draws drop down box's arrow
     def istouch(self):
         #states whether mouse is touching the mainrect of drop down menu
         mx,my = mouse.get_pos()
@@ -1310,7 +1326,7 @@ class Shape(Tool):
         global currtool
         mb = mouse.get_pressed()
         if self.shape in ["rect","ellipse"] and self.forming:
-            #turns to tool into selectool
+            #turns to tool into selectool with shape in selected box
             cfiller = screen.copy().subsurface(canvas)
             currtool = selectool
             selectool.fromshape = True #sets selectool to be from shape so that it reverts to shape tool when done
@@ -1758,14 +1774,35 @@ class Button():
             selectool.hasbox = False #turns off box in selectool
             selectool.hasmenu = False #turns off menu
         elif self.func == "flip":
-            #selected box flip button
-            selectool.selectedbox = transform.flip(selectool.selectedbox,self.arg2[0],self.arg2[1]) #flips selectool's selected box based on what user wants
-            selectool.hasmenu = False #turns off menu
+            #flip button
+            if currtool == selectool:
+                #selected box flip button
+                selectool.selectedbox = transform.flip(selectool.selectedbox,self.arg2[0],self.arg2[1]) #flips selectool's selected box based on what user wants
+                selectool.hasmenu = False #turns off menu
+            elif type(currtool) == Stamp:
+                #stamp flipping
+                currtool.img = transform.flip(currtool.img,self.arg2[0],self.arg2[1]) #flips images of stamp
+                currtool.img2 = transform.flip(currtool.img2,self.arg2[0],self.arg2[1])
+            try:
+                currtool.icon = transform.smoothscale(currtool.img,(currtool.width,currtool.height)) #sets icon to have same size as new image
+            except:
+                currtool.icon = transform.scale(currtool.img,(currtool.width,currtool.height)) #sets icon to have same size as new image  
         elif self.func == "rotate":
             #rotate selected box button
-            selectool.selectedbox = transform.rotate(selectool.selectedbox,self.arg2) #rotates selectool's selected box based on what user wants
-            selectool.width,selectool.height = selectool.height,selectool.width #switches the height and width
-            selectool.hasmenu = False #turns off menu
+            if currtool == selectool:
+                selectool.selectedbox = transform.rotate(selectool.selectedbox,self.arg2) #rotates selectool's selected box based on what user wants
+                selectool.width,selectool.height = selectool.height,selectool.width #switches the height and width
+                selectool.hasmenu = False #turns off menu
+            elif type(currtool) == Stamp:
+                #stamp rotation
+                currtool.img = transform.rotate(currtool.img,self.arg2) #rotates stamp's images
+                currtool.owidth,currtool.oheight,currtool.width,currtool.height = currtool.oheight,currtool.owidth,currtool.height,currtool.width #flips dimensions of stamp                
+                currtool.img2 = transform.rotate(currtool.img2,self.arg2)
+                currtool.owidth2,currtool.oheight2,currtool.width2,currtool.height2 = currtool.oheight2,currtool.owidth2,currtool.height2,currtool.width2
+                try:
+                    currtool.icon = transform.smoothscale(currtool.img,(currtool.width,currtool.height)) #sets icon to have same size as new image
+                except:
+                    currtool.icon = transform.scale(currtool.img,(currtool.width,currtool.height)) #sets icon to have same size as new image           
         elif self.func == "pixelate":
             #pixelate selected box button
             for x in range(0,selectool.width-selectool.width%5,5):
@@ -1796,7 +1833,15 @@ class Button():
         elif self.func == "sizechange":
             #size change button
             currtool.scroll(screen,self.arg2) #scrolls image
-        
+        elif self.func == "backdrop":
+            #backdrop change button
+            if len(undo_mem) >= 256:
+                #adds screen to undo list
+                del undo_mem[0] #removes the last thing undo_memorized if we're over the limit
+            undo_mem.append(screen.copy().subsurface(canvas)) #appends current screen to undo list
+            redo_mem = []
+            if type(self.arg2) == Surface:
+                screen.blit(self.arg2,canvas) #blits backdrop on canvas
     def disptoolbit(self,screen):
         #displays the toolbit so that user can know what button's tool does
         global comicsans
@@ -1870,9 +1915,16 @@ fontdropdown = DropDownBox(114,412,[Button("font",comicsans.render("Comic Sans M
                                    Button("font",vladimirscript.render("Vladimir Script",True,BLACK),114,532,"Change Font-Family",136,20,"vladimirscript"),
                                    Button("font",chiller.render("Chiller",True,BLACK),114,552,"Change Font-Family",136,20,"chiller")],"SELECT FONT")
 #drop down boxes for shapes
-shapedropdown = DropDownBox(114,412,[Button("shape",comicsans.render("Rectangle",True,BLACK),114,432,"Draw a rectangle by clicking and dragging",140,20,"rect"),
-                                     Button("shape",comicsans.render("Ellipse",True,BLACK),114,452,"Draw an ellipse by clicking and dragging",140,20,"ellipse"),
-                                     Button("shape",comicsans.render("Polygon",True,BLACK),114,472,"Left-click or right-click to start setting points; left-click to continue setting points; right click to finish polygon",140,20,"polygon")],"CHANGE SHAPE")
+shapedropdown = DropDownBox(114,412,[Button("shape",comicsans.render("Rectangle",True,BLACK),114,432,"Draw a rectangle by clicking and dragging",136,20,"rect"),
+                                     Button("shape",comicsans.render("Ellipse",True,BLACK),114,452,"Draw an ellipse by clicking and dragging",136,20,"ellipse"),
+                                     Button("shape",comicsans.render("Polygon",True,BLACK),114,472,"Left-click or right-click to start setting points; left-click to continue setting points; right click to finish polygon",136,20,"polygon")],"CHANGE SHAPE")
+#drop down boxes for backdrops
+backdropdown = DropDownBox(132,100,[Button("backdrop",transform.smoothscale(mirainikkibackdrop,(58,44)),132,140,"Change backdrop",58,44,mirainikkibackdrop),
+                                    Button("backdrop",transform.smoothscale(schooldaysbackdrop,(58,44)),190,140,"Change backdrop",58,44,schooldaysbackdrop),
+                                    Button("backdrop",transform.smoothscale(elfenliedbackdrop,(58,44)),132,184,"Change backdrop",58,44,elfenliedbackdrop),
+                                    Button("backdrop",transform.smoothscale(guiltycrownbackdrop,(58,44)),190,184,"Change backdrop",58,44,guiltycrownbackdrop),
+                                    Button("backdrop",transform.smoothscale(danganronpabackdrop,(58,44)),132,228,"Change backdrop",58,44,danganronpabackdrop),
+                                    Button("backdrop",transform.smoothscale(haruhibackdrop,(58,44)),190,228,"Change backdrop",58,44,haruhibackdrop)],"BACKGROUND",116,40)
 #sets
 fontdropdown.items[0].selected = True
 shapedropdown.items[0].selected = True
@@ -1887,11 +1939,16 @@ fontdecorbuttons = [Button("textdec",timesnr.render(" B",True,BLACK),34,432,"Bol
 shapewidthbuttons = [Button("shapewidth",comicsans.render(" -",True,BLACK),114,432,"Change width",20,20,-1),
                    Button("shapewidth",comicsans.render(" +",True,BLACK),250,432,"Change width",20,20,1)]
 #alpha buttons
-alphabuttons = [Button("alpha",comicsans.render(" -",True,BLACK),132,110,"Change alpha value",20,20,-1),
-                     Button("alpha",comicsans.render(" +",True,BLACK),268,110,"Change alpha value",20,20,1)]
+alphabuttons = [Button("alpha",comicsans.render(" -",True,BLACK),132,160,"Change alpha value",20,20,-1),
+                     Button("alpha",comicsans.render(" +",True,BLACK),268,160,"Change alpha value",20,20,1)]
 #size change buttons
 sizebuttons = [Button("sizechange",comicsans.render(" -",True,BLACK),34,432,"Decrease size",20,20,1),
                Button("sizechange",comicsans.render(" +",True,BLACK),204,432,"Increase size",20,20,0)]
+#stamp edit buttons
+stampeditbuttons = [Button("flip",flipicon,240,400,"Flip stamp vertically",20,20,(False,True)),
+                    Button("flip",transform.rotate(flipicon,90),260,400,"Flip stamp horizontally",20,20,(True,False)),
+                    Button("rotate",transform.flip(rotateicon,True,False),240,420,"Rotate stamp 90° counter-clockwise",20,20,90),
+                    Button("rotate",rotateicon,260,420,"Rotate stamp 90° clockwise",20,20,-90)]
 #----TOOL VARIABLES----#
 currtool = penciltool #current tool
 #buttons of all tools user can press (as well as other buttons such as save and open)
@@ -1941,16 +1998,8 @@ cfiller = screen.copy().subsurface(canvas) #canvas filler
 #header and subtitle
 header = titlefont.render("YANDERE",True,BLACK) #header word 1 "YANDERE"
 header2 = titlefont.render("SPLATTERBOARD",True,BLOODRED) #header word 2 "SPLATTERBOARD"
-screen.blit(header,(580,0))
-screen.blit(header2,(710,0))
-comicsans.set_italic(True) #italicizes subtitle
-draw.rect(screen,BLACK,(604,30,215,20),1)
-subtitlebox = Surface((213,18),SRCALPHA)
-draw.rect(subtitlebox,(255,255,255,200),(0,0,213,18)) #background for subtitle
-screen.blit(subtitlebox,(605,30))
-subtitle = comicsans.render("Great art takes Deadication",True,BLACK) #subtitle
-comicsans.set_italic(False)
-screen.blit(subtitle,(610,29))
+screen.blit(header,(440,0))
+screen.blit(header2,(610,0))
 #mini-titles
 comicsans.set_bold(True) #bolds mini-titles
 draw.rect(screen,BLACK,(19,70,62,24))
@@ -1988,9 +2037,9 @@ rcolbutton.selected = True #not really selected, but this allows for the right m
 #buttons that don't do anything but display info
 infobuttons = [Button("",infobox,364,656,"To the left are Mouse color indicators - click them to add to custom colors",20,20)]
 #----TOOL INFO BOX----#
-info_box = Surface((260,65),SRCALPHA)
-draw.rect(info_box,(185,185,185,185),(0,0,260,65))
-screen.blit(info_box,(20,400))
+toolinfo_box = Surface((260,65),SRCALPHA)
+draw.rect(toolinfo_box,(185,185,185,185),(0,0,260,65))
+screen.blit(toolinfo_box,(20,400))
 #----BOTTOM STRIP OF INFO----#
 bottomstrip = Surface((556,20),SRCALPHA)
 bottomstrip.fill((150,150,150,200))
@@ -2012,6 +2061,7 @@ redo_mem = [] #redo_memory for saves removed by the undo function for the redo f
 boxcp = None #clipboard for boxes (created by the select tool)
 mousetimer = 0 #keeps track of when last mouse click happened - for the incrementing/decreasing buttons so users can hold them
 buttonheld = Button("",Rect(0,0,0,0),0,0,"",0,0,BLACK) #button being held
+fpstracker = pytime.Clock()
 #----MAIN LOOP----#
 while running:
     #----MUSIC HANDLER----#
@@ -2061,6 +2111,10 @@ while running:
                 #if user clicks shape drop down menu
                 lastclick = "shapedropdown"
                 shapedropdown.clickon(screen)
+            elif backdropdown.mainrect.collidepoint(mx,my) or (backdropdown.menudown and backdropdown.menurect.collidepoint(mx,my)):
+                #if user clicks backdrop drop down menu
+                lastclick = "backdropdown"
+                backdropdown.clickon(screen)
             elif selectool.hasmenu and selectool.menurect.collidepoint(mx,my) and currtool == selectool:
                 #if user clicks menu on select tool
                 lastclick = "selectmenu"
@@ -2108,6 +2162,12 @@ while running:
                             buttonheld = b
                             mousetimer = time() #sets time clicked and button held
                             lastclick = "bordersize"
+                            break
+                if type(currtool) == Stamp:
+                    for b in stampeditbuttons:
+                        if b.istouch():
+                            b.clickon(screen)
+                            lastclick = "stampedit"
                             break
                 if currtool in [penciltool,brushtool,spraytool,shapetool,linetool]:
                     for b in alphabuttons:
@@ -2163,6 +2223,8 @@ while running:
                 fontdropdown.menudown = False #turns off menu in fontdropdown if it was not clicked
             if lastclick != "shapedropdown":
                 shapedropdown.menudown = False #turns off menu in shapedropdown if it was not clicked
+            if lastclick != "backdropdown":
+                backdropdown.menudown = False #turns off menu in backdropdown if it was not clicked
         if e.type == MOUSEBUTTONUP:
             if lastclick == "canvas":
                 if e.button not in [4,5]:
@@ -2295,6 +2357,8 @@ while running:
     lcolbutton.display(screen)
     rcolbutton.display(screen)
     #----DROP DOWN BOXES----#
+    #draw backdropdown
+    backdropdown.drawbox(screen)
     #draw dropdownboxes if the respective tool is selected
     if currtool == textool:
         fontdropdown.drawbox(screen)
@@ -2310,15 +2374,22 @@ while running:
     for b in tools+infobuttons:
         b.display(screen)
     if currtool == textool:
+        #draws fontsizebuttons if textool is current tool
         for b in fontsizebuttons:
             b.display(screen)
         for b in fontdecorbuttons:
             b.display(screen)
     if currtool == shapetool:
+        #draws shape border change buttons if shapetool is current tool
         for b in shapewidthbuttons:
             b.display(screen)
     if currtool in [erasertool,brushtool,spraytool,linetool] or type(currtool) == Stamp:
+        #draws sizebuttons if the current tool has a size attribute (e.g. brush, eraser, stamps)
         for b in sizebuttons:
+            b.display(screen)
+    if type(currtool) == Stamp:
+        #draws stamp edit buttons if, obviously, the current tool is a stamp
+        for b in stampeditbuttons:
             b.display(screen)
     #----STAMP CHANGER----#
     for b in stampchangebuttons:
@@ -2345,12 +2416,12 @@ while running:
     #----TRANSPARENCY INDICATOR----#
     if currtool in [penciltool,brushtool,spraytool,shapetool,linetool]:
         #displays transparency if transparency is available for tool
-        draw.rect(screen,WHITE,(152,100,116,40))
-        draw.rect(screen,BLACK,(152,100,116,40),1)
+        draw.rect(screen,WHITE,(152,150,116,40))
+        draw.rect(screen,BLACK,(152,150,116,40),1)
         comicsans.set_bold(True)
-        screen.blit(comicsans.render("Opacity",True,BLACK),(154,100))
+        screen.blit(comicsans.render("Opacity",True,BLACK),(154,150))
         comicsans.set_bold(False)
-        screen.blit(comicsans.render(str(alpha)+"%",True,BLACK),(154,120)) #displays transparency for brush
+        screen.blit(comicsans.render(str(alpha)+"%",True,BLACK),(154,170)) #displays transparency for brush
         for b in alphabuttons:
             b.display(screen) #draws buttons
     #----MOUSE HOLD FUNCTIONS----#
@@ -2447,13 +2518,7 @@ while running:
             screen.blit(comicsans.render(str(currtool.width2)+"px x "+str(currtool.height2)+"px",True,RED),(120,412)) #labels red if right clicking and the 2nd image is different from the first
         else:
             screen.blit(comicsans.render(str(currtool.width)+"px x "+str(currtool.height)+"px",True,BLACK),(120,412))
-    """try:
-        #tries to draw size of tool - this will only work for tools with size attribute
-        size = 1 if currtool.size == 0 else currtool.size*2 #sets the size of the tool
-        screen.blit(comicsans.render("Size: "+str(size)+"px",True,BLACK),(30,427))
-    except:
-        pass"""
-    #HANDLES DROP DOWN MENUS
+    #HANDLES DROP DOWN MENUS' MENU
     if fontdropdown.menudown:
         for i in fontdropdown.items:
             #sets all highlighted items in dropdown menu to highlighted or unhighlighted
@@ -2461,15 +2526,21 @@ while running:
                 i.highlighted = True
             else:
                 i.highlighted = False
-        fontdropdown.dropdown(screen)
+        fontdropdown.dropdown(screen) #draws menu items
     if shapedropdown.menudown:
         for i in shapedropdown.items:
-            #sets all highlighted items in dropdown menu to highlighted or unhighlighted
             if i.istouch():
                 i.highlighted = True
             else:
                 i.highlighted = False
         shapedropdown.dropdown(screen)
+    if backdropdown.menudown:
+        for i in backdropdown.items:
+            if i.istouch():
+                i.highlighted = True
+            else:
+                i.highlighted = False
+        backdropdown.dropdown(screen)
     #DRAWS TEXTBOX IF THE TEXT TOOL IS SELECTED AND A TEXTBOX IS OPEN
     screen.set_clip(canvas)
     if type(currtool) == Text:
@@ -2503,9 +2574,11 @@ while running:
     else:
         coords = "Off Canvas"
     screen.blit(lucidaconsole.render(coords+" L-Col: "+str(lcol[:3])+" R-Col: "+str(rcol[:3]),True,BLACK),(21,733))
+    #DRAWS FPS AT TOP OF SCREEN
+    screen.blit(lucidaconsole.render("FPS: "+str(round(fpstracker.get_fps(),1)),True,BLACK),(5,7))
     #DRAWS TOOLBIT
     #following loop displays toolbit if the mouse is touching a tool button or an info button
-    for b in tools+infobuttons:
+    for b in tools+infobuttons+stampeditbuttons:
         if b.istouch():
             b.disptoolbit(screen)
             break
@@ -2518,5 +2591,6 @@ while running:
         #else we draw the mouse
         mouse.set_visible(True)
     display.flip()
+    fpstracker.tick()
 root.destroy()
 quit()
