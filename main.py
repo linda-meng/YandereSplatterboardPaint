@@ -891,7 +891,9 @@ class Select(Tool):
                             transform.smoothscale(self.selectedbox,(self.width,self.height))),
                     Button("greyscale",timesnr.render("Greyscale filter",True,BLACK),self.menux,self.menuy+180,"",200,20,
                             transform.smoothscale(self.selectedbox,(self.width,self.height))),
-                    Button("settranscol",timesnr.render("Set transparent color",True,BLACK),self.menux,self.menuy+200,"",200,20)] #menu
+                    Button("settranscol",timesnr.render("Set transparent color",True,BLACK),self.menux,self.menuy+200,"",200,20),
+                    Button("yanderetint",chiller.render("YANDERE TINT",True,BLOODRED),self.menux,self.menuy+220,"",200,20,
+                            transform.smoothscale(self.selectedbox,(self.width,self.height)))] #menu
         self.settranscol = False
         self.menurect = Rect(0,0,200,len(self.menu)*20) #menu rect
         self.fromshape = False #did the selectool come as a result of a shape?
@@ -1006,7 +1008,9 @@ class Select(Tool):
                             transform.smoothscale(self.selectedbox,(self.width,self.height))),
                     Button("greyscale",timesnr.render("Greyscale filter",True,BLACK),self.menux,self.menuy+180,"",200,20,
                             transform.smoothscale(self.selectedbox,(self.width,self.height))),
-                    Button("settranscol",timesnr.render("Set transparent color",True,BLACK),self.menux,self.menuy+200,"",200,20)] #re-defines menu to move it
+                    Button("settranscol",timesnr.render("Set transparent color",True,BLACK),self.menux,self.menuy+200,"",200,20),
+                    Button("yanderetint",chiller.render("YANDERE TINT",True,BLOODRED),self.menux,self.menuy+220,"",200,20,
+                           transform.smoothscale(self.selectedbox,(self.width,self.height)))] #re-defines menu to move it
             elif self.hasmenu:
                 if not self.menurect.collidepoint(mx,my):
                     self.hasmenu = False #if user did not click the menu it is removed
@@ -1675,7 +1679,10 @@ class Button():
                 else:
                     #saves selected surface
                     if savename[-4:] == ".png":
-                        self.arg2 = self.arg2.convert_alpha() #converts surface into one with SRCALPHA to support alpha
+                        try:
+                            self.arg2 = self.arg2.convert_alpha() #converts surface into one with SRCALPHA to support alpha
+                        except:
+                            pass
                     image.save(self.arg2, savename)
             if self.arg2 != None:
                 screen.blit(self.arg2,(selectool.x,selectool.y)) #blits the image to the screen, as we know the select tool is the only one who can call this
@@ -1687,7 +1694,7 @@ class Button():
                 currtool.hasbox = False
             elif type(currtool) == Text:
                 currtool.hastextbox = False
-            loadname = filedialog.askopenfilename(filetypes=[("Images", "*.png;*.bmp;*.jpg;*.jpeg")])
+            loadname = filedialog.askopenfilename(filetypes=[("Images", "*.png;*.bmp;*.jpg;*.jpeg;*.gif")])
             mouse.set_visible(True)
             if loadname:
                 if len(undo_mem) >= 256:
@@ -1808,7 +1815,16 @@ class Button():
                 for y in range(0,selectool.height):
                     r,g,b,a = self.arg2.get_at((x,y)) #gets color at location
                     avg = (r+g+b)//3 #average of r-g-b values
-                    self.arg2.set_at((x,y),(avg,avg,avg)) #sets r,g,b to avg
+                    self.arg2.set_at((x,y),(avg,avg,avg,a)) #sets r,g,b to avg
+            selectool.selectedbox = self.arg2
+            selectool.hasmenu = False
+        elif self.func == "yanderetint":
+            #yandere tint button (tints it bloodred)
+            tintr,tintg,tintb,tinta = BLOODRED #RGB of color to tint
+            for x in range(0,selectool.width):
+                for y in range(0,selectool.height):
+                    r,g,b,a = self.arg2.get_at((x,y)) #gets color at location
+                    self.arg2.set_at((x,y),((tintr+r)//2,(tintg+g)//2,(tintb+b)//2,a)) #sets r,g,b to average of tint RGB
             selectool.selectedbox = self.arg2
             selectool.hasmenu = False
         elif self.func == "settranscol":
