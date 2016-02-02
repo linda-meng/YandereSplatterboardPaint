@@ -133,6 +133,21 @@ byakuyaface = transform.smoothscale(image.load("images/byakuyaface.png"),(50,50)
 byakuyatogami = image.load("images/byakuyatogami.png").convert_alpha()
 yukiface = transform.smoothscale(image.load("images/yukiface.png"),(50,50)).convert_alpha()
 yukinagato = image.load("images/yukinagato.png").convert_alpha()
+kitchenknife = image.load("images/kitchenknife.png").convert_alpha()
+kitchenknifeicon = transform.smoothscale(kitchenknife,(50,50))
+butcherknife = image.load("images/butcherknife.png").convert_alpha()
+butcherknifeicon = Surface((50,50),SRCALPHA)
+butcherknifeicon.blit(transform.smoothscale(butcherknife,(50,25)),(0,12))
+katana = image.load("images/katana.png").convert_alpha()
+katanaicon = Surface((50,50),SRCALPHA)
+katanaicon.blit(transform.smoothscale(katana,(50,25)),(0,12))
+axe = image.load("images/axe.png").convert_alpha()
+axeicon = transform.smoothscale(axe,(50,50))
+scissors = image.load("images/scissors.png").convert_alpha()
+scissorsicon = transform.smoothscale(scissors,(50,50))
+cutterknife = image.load("images/cutterknife.png").convert_alpha()
+cutterknifeicon = Surface((50,50),SRCALPHA)
+cutterknifeicon.blit(transform.smoothscale(cutterknife,(50,17)),(0,16))
 flipicon = image.load("images/flip.png").convert_alpha()
 rotateicon = image.load("images/rotate.png").convert_alpha()
 redarrow = transform.scale(image.load("images/RedArrowDown.png"),(30,30)).convert_alpha()
@@ -1707,10 +1722,10 @@ class Button():
                 opened_image = image.load(loadname)
                 img_ratio = opened_image.get_width()/opened_image.get_height()
                 if opened_image.get_width() >= opened_image.get_height():
-                    width = (min(opened_image.get_width(),800))
+                    width = (min(opened_image.get_width(),canvas[2]))
                     height = (int(width/img_ratio))
                 else:
-                    height = (min(opened_image.get_height(),600))
+                    height = (min(opened_image.get_height(),canvas[3]))
                     width = (int(height*img_ratio))
                 currtool = selectool #changes current tool to select tool
                 currtool.hasbox = True
@@ -1912,6 +1927,13 @@ koutastamp = Stamp(kouta) #Kouta stamp
 shustamp = Stamp(shuouma) #Shu Ouma stamp
 byakuyastamp = Stamp(byakuyatogami) #Byakuya Togami stamp
 yukistamp = Stamp(yukinagato) #Yuki Nagato stamp
+#--page3
+kitchenknifestamp = Stamp(kitchenknife) #kitchen knife stamp
+butcherknifestamp = Stamp(butcherknife) #butcher knife stamp
+katanastamp = Stamp(katana) #katana stamp
+axestamp = Stamp(axe) #axe stamp
+scissorsstamp = Stamp(scissors) #scissors stamp
+cutterknifestamp = Stamp(cutterknife) #cutter knife stamp
 #DROP DOWN BOXES
 #drop down box for fonts
 fontdropdown = DropDownBox(114,412,[Button("font",comicsans.render("Comic Sans MS",True,BLACK),114,432,"Change Font-Family",136,20,"comicsansms"),
@@ -1990,7 +2012,13 @@ stamps = [[Button(yunostamp,yunoface,600,690,"Paste the cute yet scary Yuno Gasa
          Button(koutastamp,koutaface,720,690,"Paste Kouta - a nice boy who is both Lucy's victim and crush",50,50),
          Button(shustamp,shuface,780,690,"Paste Shu Ouma - an average boy who gains a great power, and who Inori Yuzuriha loves",50,50),
          Button(byakuyastamp,byakuyaface,840,690,"Paste Byakuya Togami - a rich boy who looks down on others and is stalked by Toko Fukawa",50,50),
-         Button(yukistamp,yukiface,900,690,"Paste Yuki Nagato - a taciturn girl who Ryoko Asakura will do ANYTHING to protect",50,50)]]
+         Button(yukistamp,yukiface,900,690,"Paste Yuki Nagato - a taciturn girl who Ryoko Asakura will do ANYTHING to protect",50,50)],
+          [Button(kitchenknifestamp,kitchenknifeicon,600,690,"Paste a kitchen knife - a convenient weapon if you like cooking",50,50),
+         Button(butcherknifestamp,butcherknifeicon,660,690,"Paste a butcher knife - similar to a kitchen knife but stronger",50,50),
+         Button(katanastamp,katanaicon,720,690,"Paste a katana - a traditional Japanese sword; a weapon of delicacy and efficiency",50,50),
+         Button(axestamp,axeicon,780,690,"Paste an axe - a strong weapon that may come in handy on a trip to the woods...",50,50),
+         Button(scissorsstamp,scissorsicon,840,690,"Paste a pair of scissors - great weapon that no one will expect",50,50),
+         Button(cutterknifestamp,cutterknifeicon,900,690,"Paste a cutter knife - a stealthy weapon who no one will be alarmed by",50,50)]]
 #stamp change buttons - for changing stamp pages
 stampchangebuttons = [Button("stampchange",comicsans.render(" <",True,BLACK),840,670,"Stamp page forward",20,20,-1),
                       Button("stampchange",comicsans.render(" >",True,BLACK),930,670,"Stamp page backward",20,20,1)]
@@ -2019,8 +2047,8 @@ ystamptitle = comicsans.render("STAMPS OF DEADICATION",True,BLOODRED) #Title of 
 screen.blit(ystamptitle,(600,660))
 comicsans.set_bold(False)
 #----COLOR PALETTE----#
-draw.rect(screen,BLACK,(19,475,260,82),1) #drawing background for palette buttons
-draw.rect(screen,DARK_GREY,(20,476,258,80))
+draw.rect(screen,BLACK,(19,475,262,72),1) #drawing background for palette buttons
+draw.rect(screen,DARK_GREY,(20,476,260,70))
 screen.blit(comicsans.render("COLOUR PALETTE",True,WHITE),(50,486)) #blitting title of color palette
 draw.rect(screen,BLACK,(19,545,262,186)) #draws border for palette
 palette = transform.scale(image.load("images/spectrum_chart.jpg"),(260,184)) #palette
@@ -2042,7 +2070,10 @@ rcolbutton = Button("addcustom",Rect(332,656,30,30),332,656,"",30,30,rcol) #righ
 rcolbutton.selected = True #not really selected, but this allows for the right mouse color button to have a red border
 #----INFO BUTTONS----#
 #buttons that don't do anything but display info
-infobuttons = [Button("",infobox,364,656,"To the left are Mouse color indicators - click them to add to custom colors",20,20)]
+infobuttons = [Button("",infobox,364,656,"To the left are MOUSE COLOUR INDICATORS - click them to add to CUSTOM COLOURS",20,20),
+               Button("",infobox,260,400,"This translucent light-grey box is a TOOL INFORMATION BOX; it displays information about the current tool",20,20),
+               Button("",infobox,261,476,"This dark grey box contains COLOUR CHANGE BUTTONS that change your mouse color as well as CUSTOM COLOURS",20,20),
+               Button("",infobox,261,527,"The colorful box below is the COLOUR PALETTE, which allows you to select a large variety of colors",20,20)]
 #----TOOL INFO BOX----#
 toolinfo_box = Surface((260,65),SRCALPHA)
 draw.rect(toolinfo_box,(185,185,185,185),(0,0,260,65))
@@ -2317,10 +2348,10 @@ while running:
                     opened_image = image.load(loadname)
                     img_ratio = opened_image.get_width()/opened_image.get_height()
                     if opened_image.get_width() >= opened_image.get_height():
-                        width = (min(opened_image.get_width(),800))
+                        width = (min(opened_image.get_width(),canvas[2]))
                         height = (int(width/img_ratio))
                     else:
-                        height = (min(opened_image.get_height(),600))
+                        height = (min(opened_image.get_height(),canvas[3]))
                         width = (int(height*img_ratio))
                     currtool = selectool #changes current tool to select tool
                     currtool.hasbox = True
@@ -2374,7 +2405,7 @@ while running:
     #----DRAWING PALETTE----#
     for b in palbuttons+custompalbuttons:
         b.display(screen)
-    screen.blit(palette,(palrect[0],palrect[1]))
+    screen.blit(palette,palrect)
     #----DRAWING GRADIENT SELECTOR----#
     gradsel.draw(screen)
     #----DRAWING BUTTONS----#
@@ -2512,6 +2543,13 @@ while running:
     #DRAWS CIRCLES OF COLOR INDICATION ON PALETTE
     draw.circle(screen,WHITE,pspot1,10,1)
     draw.circle(screen,BLOODRED,pspot2,10,1)
+    #----DRAWING BOTTOM STRIP BELOW THE PALETTE----#
+    screen.blit(bottomstrip,(20,730))
+    if canvas.collidepoint(mx,my):
+        coords = "X: "+str(mx-300)+" Y: "+str(my-50)
+    else:
+        coords = "Off Canvas"
+    screen.blit(lucidaconsole.render(coords+" L-Col: "+str(lcol[:3])+" R-Col: "+str(rcol[:3]),True,BLACK),(21,733))
     #DRAWS INFORMATION ON TOOL INFO BOX
     screen.blit(comicsans.render(currtool.__class__.__name__+" tool",True,BLACK),(30,412)) #blits tools' class name
     if currtool == shapetool:
@@ -2574,13 +2612,7 @@ while running:
             for b in selectool.menu:
                 b.display(screen)        
     screen.set_clip(None)
-    #----DRAWING BOTTOM STRIP BELOW THE PALETTE----#
-    screen.blit(bottomstrip,(20,730))
-    if canvas.collidepoint(mx,my):
-        coords = "X: "+str(mx-300)+" Y: "+str(my-50)
-    else:
-        coords = "Off Canvas"
-    screen.blit(lucidaconsole.render(coords+" L-Col: "+str(lcol[:3])+" R-Col: "+str(rcol[:3]),True,BLACK),(21,733))
+
     #DRAWS FPS AT TOP OF SCREEN
     screen.blit(lucidaconsole.render("FPS: "+str(round(fpstracker.get_fps(),1)),True,BLACK),(5,7))
     #DRAWS TOOLBIT
