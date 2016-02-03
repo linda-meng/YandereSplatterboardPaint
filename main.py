@@ -45,7 +45,7 @@ music[0].play()
 song = 0 #which song are we playing
 draw.rect(screen,(255,0,0),(143,466,420,27))
 display.flip()
-#COLOR
+#COLORS
 WHITE = (255,255,255,255)
 BLACK = (0,0,0,255)
 LIGHT_GREY = (180,180,180,255)
@@ -271,9 +271,9 @@ class DropDownBox():
         self.itemrects = [Rect(i.x,i.y,i.width,i.height) for i in self.items]#item rects
         self.menudown = False #is the menu down?
         self.mainrect = Rect(self.x,self.y,self.width+min(self.width,self.height),self.height)#main rect of the drop down box (not it's items)
-        totwidth = sum([i.width for i in self.items])#sum of all the item's widths
-        totheight = sum([i.height for i in self.items])#sum of all the item's heights
-        self.menurect = Rect(self.x,self.y+self.height,totwidth,totheight) #rect of the menu portion of the dropdown box
+        menuwidth = max([i.width+i.x for i in self.items])-self.x#right-most button end subtract self.x is the width of menu
+        menuheight = max([i.height+i.y for i in self.items]) - (self.y + self.height) #highest height + y - dropdown box's y+height becomes the height
+        self.menurect = Rect(self.x,self.y+self.height,menuwidth,menuheight) #rect of the menu portion of the dropdown box
         self.highlighted = False #is the box highlighted by mouse?
     def dropdown(self,screen):
         #drops down the menu
@@ -330,7 +330,7 @@ class GradSel():
         self.color = lcol #sets its own color to lcol
     def rclick(self,screen):
         #right click function
-        #sets mouse color to 
+        #sets mouse color to right mouse color
         global rcol
         self.clicked = 1
         self.color = rcol #sets its own color to rcol
@@ -550,7 +550,7 @@ class Eraser(Tool):
             draw.circle(screen,WHITE,(mx,my),self.size) #draws circle to show user how big eraser is
         else:
             screen.set_at((mx,my),WHITE)
-        super(Eraser,self).drawsprite(screen) #Calls on Tool class's default toolbit, as that fits the bill for the Eraser tool
+        super(Eraser,self).drawsprite(screen) #Calls on Tool class's default tool sprite, as that fits the bill for the Eraser tool
     def keypress(self,screen,keypressed=""):
         if keypressed == " ":
             self.size = 10 #resets the size to 10 upon space press
@@ -1356,7 +1356,7 @@ class Shape(Tool):
             selectool.x,selectool.y,selectool.width,selectool.height = framerect
             selectool.hasbox = True
             tempdraw.fill((255,255,255,0)) #clears tempdraw
-            screen.blit(toolboxfiller,(20,90)) #clears shapetool's drop down box
+            screen.blit(toolboxfiller,(20,90)) #clears information box's items
             cfiller = screen.copy().subsurface(canvas)
             self.forming = False
         elif len(self.points) == 0:
@@ -1580,7 +1580,7 @@ class Stamp(Tool):
 #this class is the class for all buttons in the program
 class Button():
     #button for selecting tool, or for changing fontsize, or changing color, or selecting font
-    def __init__(self,func,pic,x=0,y=0,toolbit="",width=40,height=40,arg2=None):
+    def __init__(self,func,pic,x=0,y=0,toolinformation="",width=40,height=40,arg2=None):
         self.height = height #dimensions of button
         self.width = width
         self.func = func #function button does
@@ -1588,7 +1588,7 @@ class Button():
         self.y = y
         self.pic = pic #picture of button
         self.highlighted = False #is button being hovered over or held on?
-        self.toolbit = toolbit
+        self.toolinformation = toolinformation
         self.selected = False #is this button selected (only applies to drop down boxes' buttons)
         self.arg2 = arg2 #2nd argument for button - optional. Tool buttons don't use this
     def display(self,screen):
@@ -1647,7 +1647,7 @@ class Button():
             elif self.arg2 == "polygon":
                 tools[8].pic = polygonsprite 
                 shapetool.icon = polygonsprite
-            tools[8].toolbit = "Shape tool ("+str(self.arg2.title())+"): "+str(self.toolbit)
+            tools[8].toolinformation = "Shape tool ("+str(self.arg2.title())+"): "+str(self.toolinformation)
         elif self.func == "shapewidth":
             #shape width change
             currtool = shapetool
@@ -1864,17 +1864,17 @@ class Button():
             redo_mem = []
             if type(self.arg2) == Surface:
                 screen.blit(self.arg2,canvas) #blits backdrop on canvas
-    def disptoolbit(self,screen):
-        #displays the toolbit so that user can know what button's tool does
+    def disptoolinformation(self,screen):
+        #displays the tool information so that user can know what button's tool does
         global comicsans
         mx,my = mouse.get_pos()
-        width = comicsans.render(self.toolbit,True,BLOODRED).get_width()+20
+        width = comicsans.render(self.toolinformation,True,BLOODRED).get_width()+20
         if width + mx + 5 > 1200:
-            mx -= width #makes sure toolbit doesn't go off the edge
+            mx -= width #makes sure tool information doesn't go off the edge
         if self.func in [yunostamp,kotonohastamp,lucystamp,inoristamp,tokostamp,ryokostamp]:
             #if the the button changes the tool into a special yandere stamp, in which case we add an extra line of text informing the user of the right-click special
             draw.rect(screen,BLACK,(mx,my-53,width,53))
-            screen.blit(comicsans.render(self.toolbit,True,BLOODRED),(mx+5,my-48))
+            screen.blit(comicsans.render(self.toolinformation,True,BLOODRED),(mx+5,my-48))
             smallfont = font.SysFont("comicsansms",10) #small
             screen.blit(smallfont.render("RIGHT CLICK ON CANVAS FOR YANDERE VERSION",True,BLOODRED),(mx+5,my-30))
             screen.blit(smallfont.render("[Scroll to change size, space to reset size]",True,BLOODRED),(mx+5,my-17))
@@ -1883,18 +1883,18 @@ class Button():
             smallfont = font.SysFont("comicsansms",10) #small font
             width = max(width,smallfont.render("[Scroll to change size, space to reset size]",True,BLOODRED).get_width()+20)
             draw.rect(screen,BLACK,(mx,my-40,width,40))
-            screen.blit(comicsans.render(self.toolbit,True,BLOODRED),(mx+5,my-35))
+            screen.blit(comicsans.render(self.toolinformation,True,BLOODRED),(mx+5,my-35))
             screen.blit(smallfont.render("[Scroll to change size, space to reset size]",True,BLOODRED),(mx+5,my-17))
         elif self.func == shapetool:
             #if it's a shapetool we add extra text
             smallfont = font.SysFont("comicsansms",10) #small font
             width = max(width,smallfont.render("[Scroll to change size, space to reset size]",True,BLOODRED).get_width()+20)
             draw.rect(screen,BLACK,(mx,my-40,width,40))
-            screen.blit(comicsans.render(self.toolbit,True,BLOODRED),(mx+5,my-35))
+            screen.blit(comicsans.render(self.toolinformation,True,BLOODRED),(mx+5,my-35))
             screen.blit(smallfont.render("[Scroll to change border-size, space to reset to fill mode]",True,BLOODRED),(mx+5,my-17))
         else:
             draw.rect(screen,BLACK,(mx,my-30,width,30))
-            screen.blit(comicsans.render(self.toolbit,True,BLOODRED),(mx+5,my-25))
+            screen.blit(comicsans.render(self.toolinformation,True,BLOODRED),(mx+5,my-25))
             
 #MOUSE COLOURS
 lcol = BLACK
@@ -2017,8 +2017,8 @@ stamps = [[Button(yunostamp,yunoface,600,690,"Paste the cute yet scary Yuno Gasa
          Button(butcherknifestamp,butcherknifeicon,660,690,"Paste a butcher knife - similar to a kitchen knife but stronger",50,50),
          Button(katanastamp,katanaicon,720,690,"Paste a katana - a traditional Japanese sword; a weapon of delicacy and efficiency",50,50),
          Button(axestamp,axeicon,780,690,"Paste an axe - a strong weapon that may come in handy on a trip to the woods...",50,50),
-         Button(scissorsstamp,scissorsicon,840,690,"Paste a pair of scissors - great weapon that no one will expect",50,50),
-         Button(cutterknifestamp,cutterknifeicon,900,690,"Paste a cutter knife - a stealthy weapon who no one will be alarmed by",50,50)]]
+         Button(scissorsstamp,scissorsicon,840,690,"Paste a pair of scissors - a stealthy weapon who no one will be alarmed by",50,50),
+         Button(cutterknifestamp,cutterknifeicon,900,690,"Paste a cutter knife - great weapon that no one will expect",50,50)]]
 #stamp change buttons - for changing stamp pages
 stampchangebuttons = [Button("stampchange",comicsans.render(" <",True,BLACK),840,670,"Stamp page forward",20,20,-1),
                       Button("stampchange",comicsans.render(" >",True,BLACK),930,670,"Stamp page backward",20,20,1)]
@@ -2049,7 +2049,7 @@ comicsans.set_bold(False)
 #----COLOR PALETTE----#
 draw.rect(screen,BLACK,(19,475,262,72),1) #drawing background for palette buttons
 draw.rect(screen,DARK_GREY,(20,476,260,70))
-screen.blit(comicsans.render("COLOUR PALETTE",True,WHITE),(50,486)) #blitting title of color palette
+screen.blit(comicsans.render("COLOUR PALETTE",True,WHITE),(84,486)) #blitting title of color palette
 draw.rect(screen,BLACK,(19,545,262,186)) #draws border for palette
 palette = transform.scale(image.load("images/spectrum_chart.jpg"),(260,184)) #palette
 palrect = Rect(20,546,260,184) #palette rect
@@ -2070,14 +2070,14 @@ rcolbutton = Button("addcustom",Rect(332,656,30,30),332,656,"",30,30,rcol) #righ
 rcolbutton.selected = True #not really selected, but this allows for the right mouse color button to have a red border
 #----INFO BUTTONS----#
 #buttons that don't do anything but display info
-infobuttons = [Button("",infobox,364,656,"To the left are MOUSE COLOUR INDICATORS - click them to add to CUSTOM COLOURS",20,20),
-               Button("",infobox,260,400,"This translucent light-grey box is a TOOL INFORMATION BOX; it displays information about the current tool",20,20),
-               Button("",infobox,261,476,"This dark grey box contains COLOUR CHANGE BUTTONS that change your mouse color as well as CUSTOM COLOURS",20,20),
-               Button("",infobox,261,527,"The colorful box below is the COLOUR PALETTE, which allows you to select a large variety of colors",20,20)]
+infobuttons = [Button("",infobox,364,656,"To the left are MOUSE COLOUR INDICATORS - click them to add to CUSTOM COLOURS",19,19),
+               Button("",infobox,20,399,"This translucent light-grey box is a TOOL INFORMATION BOX; it displays information about the current tool",19,19),
+               Button("",infobox,20,476,"This dark grey box contains COLOUR CHANGE BUTTONS that change your mouse color as well as CUSTOM COLOURS",19,19),
+               Button("",infobox,20,526,"The colorful box below is the COLOUR PALETTE, which allows you to select a large variety of colors",19,19)]
 #----TOOL INFO BOX----#
-toolinfo_box = Surface((260,65),SRCALPHA)
-draw.rect(toolinfo_box,(185,185,185,185),(0,0,260,65))
-screen.blit(toolinfo_box,(20,400))
+toolinfo_box = Surface((260,66),SRCALPHA)
+draw.rect(toolinfo_box,(185,185,185,185),(0,0,260,66))
+screen.blit(toolinfo_box,(20,399))
 #----BOTTOM STRIP OF INFO----#
 bottomstrip = Surface((556,20),SRCALPHA)
 bottomstrip.fill((150,150,150,200))
@@ -2092,7 +2092,7 @@ tempdraw = Surface((screen.get_width(),screen.get_height()),SRCALPHA)
 tempdraw.set_clip(canvas) #clips temp draw
 #----other important variables----#
 lastclick = "" #keeps track of last click
-filler = screen.copy() #screen filler - used for mouse sprites and toolbits and other temporary pop-ups
+filler = screen.copy() #screen filler - used for mouse sprites and tool informations and other temporary pop-ups
 toolboxfiller = screen.subsurface(Rect(20,90,278,510)).copy() #tool box
 undo_mem = [] #undo_memory for previous saves for the undo function
 redo_mem = [] #redo_memory for saves removed by the undo function for the redo function
@@ -2110,7 +2110,7 @@ while running:
             shuffle(music) #randomizes playlist
             song = 0
         music[song].play()
-    screen.blit(filler,(0,0)) #fills the screen to hide toolbit, mouse sprites and other pop-ups
+    screen.blit(filler,(0,0)) #fills the screen to hide tool information, mouse sprites and other pop-ups
     #----EVENT LOOP----#
     for e in event.get():
         if e.type == QUIT:
@@ -2361,6 +2361,7 @@ while running:
             elif kp[K_v] and (kp[K_LCTRL] or kp[K_RCTRL]):
                 #CTRL-V
                 #pastes clipboard image
+                screen.blit(toolboxfiller,(20,90)) #clears information box's stuff
                 if boxcp != None:
                     if None not in boxcp:
                         if len(undo_mem) >= 256:
@@ -2531,7 +2532,7 @@ while running:
                 sleep(0.015) #delays the time a little bit when holding the key
     #----SCREEN SAVING----#  
     filler = screen.copy() #copies all updates into filler
-    #----Temporary drawings that should never stick to screen (e.g. sprites and toolbits)----#
+    #----Temporary drawings that should never stick to screen (e.g. sprites and tool informations)----#
     #DRAWS TEMPORARY DRAWING BOARD FOR LINES - THIS IS TO SUPPORT TRANSPARENCY
     if mb[0] or mb[2] or len(shapetool.points) > 0:
         screen.blit(tempdraw,(0,0))
@@ -2543,26 +2544,26 @@ while running:
     #DRAWS CIRCLES OF COLOR INDICATION ON PALETTE
     draw.circle(screen,WHITE,pspot1,10,1)
     draw.circle(screen,BLOODRED,pspot2,10,1)
-    #----DRAWING BOTTOM STRIP BELOW THE PALETTE----#
+    #DRAWING BOTTOM STRIP BELOW THE PALETTE
     screen.blit(bottomstrip,(20,730))
     if canvas.collidepoint(mx,my):
-        coords = "X: "+str(mx-300)+" Y: "+str(my-50)
+        coords = "X: "+str(mx-canvas[0])+" Y: "+str(my-canvas[1])
     else:
         coords = "Off Canvas"
     screen.blit(lucidaconsole.render(coords+" L-Col: "+str(lcol[:3])+" R-Col: "+str(rcol[:3]),True,BLACK),(21,733))
     #DRAWS INFORMATION ON TOOL INFO BOX
-    screen.blit(comicsans.render(currtool.__class__.__name__+" tool",True,BLACK),(30,412)) #blits tools' class name
+    screen.blit(comicsans.render(currtool.__class__.__name__+" tool",True,BLACK),(30,413)) #blits tools' class name
     if currtool == shapetool:
         screen.blit(comicsans.render(shapetool.shape.title(),True,BLACK),(30,427)) #blits shape tool's shape
     if currtool == selectool and selectool.hasbox:
-        screen.blit(comicsans.render("X: "+str(selectool.x-canvas[0])+" Y: "+str(selectool.y-canvas[1]),True,BLACK),(120,412)) #blits selected box's co-ords (relative to canvas)
+        screen.blit(comicsans.render("X: "+str(selectool.x-canvas[0])+" Y: "+str(selectool.y-canvas[1]),True,BLACK),(120,413)) #blits selected box's co-ords (relative to canvas)
         screen.blit(comicsans.render(str(selectool.width)+" x "+str(selectool.height),True,BLACK),(30,427)) #blits selected box's dimensions
     if type(currtool) == Stamp:
         #if the tool is a stamp labels dimensions
         if mb[2] and currtool.img != currtool.img2:
-            screen.blit(comicsans.render(str(currtool.width2)+"px x "+str(currtool.height2)+"px",True,RED),(120,412)) #labels red if right clicking and the 2nd image is different from the first
+            screen.blit(comicsans.render(str(currtool.width2)+"px x "+str(currtool.height2)+"px",True,RED),(120,413)) #labels red if right clicking and the 2nd image is different from the first
         else:
-            screen.blit(comicsans.render(str(currtool.width)+"px x "+str(currtool.height)+"px",True,BLACK),(120,412))
+            screen.blit(comicsans.render(str(currtool.width)+"px x "+str(currtool.height)+"px",True,BLACK),(120,413))
     #HANDLES DROP DOWN MENUS' MENU
     if fontdropdown.menudown:
         for i in fontdropdown.items:
@@ -2615,12 +2616,18 @@ while running:
 
     #DRAWS FPS AT TOP OF SCREEN
     screen.blit(lucidaconsole.render("FPS: "+str(round(fpstracker.get_fps(),1)),True,BLACK),(5,7))
-    #DRAWS TOOLBIT
-    #following loop displays toolbit if the mouse is touching a tool button or an info button
-    for b in tools+infobuttons+stampeditbuttons:
+    #DRAWS TOOL INFORMATION BOX
+    #following loop displays tool information if the mouse is touching a tool button or an info button
+    for b in tools+infobuttons:
         if b.istouch():
-            b.disptoolbit(screen)
+            b.disptoolinformation(screen)
             break
+    if type(currtool) == Stamp:
+        #displays tool information for stamps if the current tool is a stamp
+        for b in stampeditbuttons:
+            if b.istouch():
+                b.disptoolinformation(screen)
+                break
     #DRAWS MOUSE SPRITE
     if canvas.collidepoint(mx,my) and (not selectool.hasmenu or not selectool.menurect.collidepoint(mx,my)):
         #if the mouse is above the canvas and not above a menu, we draw a sprite
