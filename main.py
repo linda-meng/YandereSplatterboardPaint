@@ -1371,6 +1371,15 @@ class Shape(Tool):
     def keypress(self,screen,keypressed=""):
         if keypressed == " ":
             self.width = 0 #resets width when space is clicked
+            if self.shape == "polygon" and len(self.points) > 0:
+                tempdraw.fill((255,255,255,0))
+                #if length of points is greater than 0 and we have a polygon shape active, we draw all the points again with the new size
+                if len(self.points) == 1:
+                    #if there is only one point we just draw a new dot on the point
+                    draw.circle(tempdraw,self.col,self.points[0],self.width//2)
+                else:
+                    for i in range(1,len(self.points)):
+                        draw.line(tempdraw,self.col,self.points[i-1],self.points[i])
     def outside(self):
         mb = mouse.get_pressed()
         if self.shape == "polygon" and len(self.points) > 0:
