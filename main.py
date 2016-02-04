@@ -16,7 +16,7 @@ __copyright__ = "Yttrium Z 2015-2016"
 #----SETUP----#
 os.environ['SDL_VIDEO_WINDOW_POS'] = '25,25'
 root = Tk()
-root.withdraw() #makes sure file dialog box disappears after it closes
+root.withdraw() #makes sure file dialog box disappears after it closes - so it doesn't leave this empty window you can't delete
 screen = display.set_mode((1200,750))
 try:
     display.set_icon(transform.scale(image.load("images/icon.jpg"),(32,32))) #sets icon
@@ -274,7 +274,6 @@ class DropDownBox():
         menuwidth = max([i.width+i.x for i in self.items])-self.x#right-most button end subtract self.x is the width of menu
         menuheight = max([i.height+i.y for i in self.items]) - (self.y + self.height) #highest height + y - dropdown box's y+height becomes the height
         self.menurect = Rect(self.x,self.y+self.height,menuwidth,menuheight) #rect of the menu portion of the dropdown box
-        self.highlighted = False #is the box highlighted by mouse?
     def dropdown(self,screen):
         #drops down the menu
         for i in self.items:
@@ -746,7 +745,7 @@ class Text(Tool):
         self.fontfamily = fontfamily
         self.fontsize = fontsize #sets font
         self.textbox = Textbox(0,0,0,0,fontfamily,fontsize,(0,0,0))
-        self.hastextbox = False #has this tool drawn a textbox already?
+        self.hastextbox = False #has this tool drawn a textbox already? this boolean says
         self.dx = 0 #distance of mouse from corner of textbox - used for moving textbox on click
         self.dy = 0
     def lclick(self,screen):
@@ -784,7 +783,9 @@ class Text(Tool):
                 self.dx,self.dy = 0,0
         else:
             #draws a text box if we don't have one
-            decor = (("bold",self.textbox.tbfont.get_bold()),("italic",self.textbox.tbfont.get_italic()),("underline",self.textbox.tbfont.get_underline())) #tuple of text decor
+            
+            #tuple of text decor
+            decor = (("bold",self.textbox.tbfont.get_bold()),("italic",self.textbox.tbfont.get_italic()),("underline",self.textbox.tbfont.get_underline()))
             self.textbox = Textbox(mx,my,20,20,self.textbox.fontfamily,self.textbox.fontsize,rcol)
             for t,d in decor:
                 if d:
@@ -806,7 +807,8 @@ class Text(Tool):
             self.fontsize += 1
             self.fontsize = min(self.fontsize,99) #makes sure fontsize isn't greater than 99
         self.textbox.changefont(self.fontfamily,self.fontsize)
-        self.textbox.width = max([self.textbox.tbfont.render(self.textbox.text[i],True,BLACK).get_width() for i in range(self.textbox.lines)]) #sets width to be maximum of the lines
+        #sets width to be maximum of the lines
+        self.textbox.width = max([self.textbox.tbfont.render(self.textbox.text[i],True,BLACK).get_width() for i in range(self.textbox.lines)])
         self.textbox.height = self.textbox.tbfont.render(self.textbox.text[-1],True,BLACK).get_height()*self.textbox.lines #sets height
     def keypress(self,screen,keypressed):
         #the only tool who uses this method
@@ -877,7 +879,8 @@ class Text(Tool):
             else:
                 col = None
             self.textbox.changefont(self.fontfamily,self.fontsize,col)
-            self.textbox.width = max([self.textbox.tbfont.render(self.textbox.text[i],True,BLACK).get_width() for i in range(self.textbox.lines)]) #sets width to be maximum of the lines
+            #sets width to be maximum of the lines
+            self.textbox.width = max([self.textbox.tbfont.render(self.textbox.text[i],True,BLACK).get_width() for i in range(self.textbox.lines)])
             self.textbox.height = self.textbox.tbfont.render(self.textbox.text[-1],True,BLACK).get_height()*self.textbox.lines #sets height
     def drawsprite(self,screen):
         mx,my = mouse.get_pos()     
@@ -887,7 +890,7 @@ class Select(Tool):
     #selects an area and makes it moveable
     def __init__(self):
         self.icon = crosscursor
-        self.hasmenu = False #has the tool a menu set?
+        self.hasmenu = False #has the tool a menu set? this boolean says
         self.selectedbox = Surface((1,1)) #selected box by shape
         self.x,self.y,self.width,self.height = 0,0,0,0 #dimensions and co-ords of selected box
         self.menux,self.menuy = 0,0 #menu position
@@ -911,13 +914,14 @@ class Select(Tool):
                             transform.smoothscale(self.selectedbox,(self.width,self.height)))] #menu
         self.settranscol = False
         self.menurect = Rect(0,0,200,len(self.menu)*20) #menu rect
-        self.fromshape = False #did the selectool come as a result of a shape?
-        self.pressedsave = False #did user press save?
-        self.hasbox = False #has the tool a selected box set?
-        self.forming = False #is the box being formed?
+        self.fromshape = False #did the selectool come as a result of a shape? this boolean says
+        self.pressedsave = False #did user press save? this boolean says
+        self.hasbox = False #has the tool a selected box set? this boolean says
+        self.forming = False #is the box being formed? this boolean says
         self.dx,self.dy = 0,0 #difference in x and y between mouse and corner of selectedbox
         self.clicked = 0 #which button clicked? 0 means left mouse, 1 means right mouse
-        self.op = 0 #option of size change the user tried (this is determined by where user clicks; each option affects different parts of the box, like either x or width, y or height, etc.)
+        self.op = 0 #option of size change the user tried
+                    #(this is determined by where user clicks; each option affects different parts of the box, like either x or width, y or height, etc.)
         #0 = No change; 1: change x and y; 2: change width and y; 3: change x and height; 4: change width and height;
         #5 = change y; 6 = change height; 7 = change x; 8 = change width
     def lclick(self,screen):
@@ -1077,7 +1081,8 @@ class Select(Tool):
             cfiller = screen.copy().subsurface(canvas)
             self.forming = False
         elif self.hasmenu:
-            #if there exists a menu we check if we moused up over the first button (the save button, since it opens a new window we need to open it on mouseup not mousedown
+            #if there exists a menu we check if we moused up over the first button
+            #(the save button, since it opens a new window we need to open it on mouseup not mousedown
             #otherwise it will close the window on mouse up after mouse down)
             if self.menu[0].istouch() and self.pressedsave:
                 self.menu[0].clickon(screen)
@@ -1231,7 +1236,7 @@ class Shape(Tool):
         self.shape = "rect" #shape of tool, default is rect
         self.col = lcol #color of shape - default is left mouse color
         self.width = 0 #width of shape - default is 0
-        self.forming = False #forming a rect or an ellipse?
+        self.forming = False #forming a rect or an ellipse? this boolean says if we are forming one
         self.sx,self.sy = 0,0 #starting co-ords of shape, starts at 0,0 (doesn't rly matter since we change it on click)
         self.points = [] #points of polygon (for polygon option)
     def lclick(self,screen,fromright=False):
@@ -1339,7 +1344,8 @@ class Shape(Tool):
             ellipseSurface = Surface((abs(self.sx-mx),abs(self.sy-my)),SRCALPHA) #surface that will contain the ellipse
             draw.ellipse(ellipseSurface,self.col,Rect(0,0,framerect[2],framerect[3])) #draws ellipse
             if self.width != 0 and abs(self.sy-my)-self.width*2 > 0 and abs(self.sx-mx)-self.width*2 > 0:
-                #if the width and height of the centre ellipse is greater than 0 and the ellipse has a border, draws transparent ellipse in the centre to simulate an ellipse with a border
+                #if the width and height of the centre ellipse is greater than 0 and the ellipse has a border
+                #draws transparent ellipse in the centre to simulate an ellipse with a border
                 draw.ellipse(ellipseSurface,(255,255,255,0),(self.width,self.width,framerect[2]-self.width*2,framerect[3]-self.width*2))
             tempdraw.blit(ellipseSurface,(framerect[0],framerect[1])) #blits the ellipse surface
     def mouseup(self,screen):
@@ -1587,7 +1593,6 @@ class Button():
         self.x = x #coords of button
         self.y = y
         self.pic = pic #picture of button
-        self.highlighted = False #is button being hovered over or held on?
         self.toolinformation = toolinformation
         self.selected = False #is this button selected (only applies to drop down boxes' buttons)
         self.arg2 = arg2 #2nd argument for button - optional. Tool buttons don't use this
@@ -1614,7 +1619,7 @@ class Button():
         rectform = Rect(self.x,self.y,self.width,self.height)
         return rectform.collidepoint(mx,my)
     def clickon(self,screen,rclick=False):
-        global textool,currtool,lcol,rcol,shapetool,custompalbuttons,cfiller,undo_mem,redo_mem,boxcp,alpha,stampage,tools
+        global textool,currtool,lcol,rcol,shapetool,custompalbuttons,cfiller,undo_mem,redo_mem,boxcp,alpha,stampage,mainbuttons
         if issubclass(type(self.func),Tool):
             #tool change button
             currtool = self.func
@@ -1639,15 +1644,15 @@ class Button():
             currtool = shapetool
             shapetool.shape = self.arg2 #changes shapetool to shape
             if self.arg2 == "ellipse":
-                tools[8].pic = ellipsesprite
+                mainbuttons[8].pic = ellipsesprite
                 shapetool.icon = ellipsesprite
             elif self.arg2 == "rect":
-                tools[8].pic = roundedrect
+                mainbuttons[8].pic = roundedrect
                 shapetool.icon = roundedrect
             elif self.arg2 == "polygon":
-                tools[8].pic = polygonsprite 
+                mainbuttons[8].pic = polygonsprite 
                 shapetool.icon = polygonsprite
-            tools[8].toolinformation = "Shape tool ("+str(self.arg2.title())+"): "+str(self.toolinformation)
+            mainbuttons[8].toolinformation = "Shape tool ("+str(self.arg2.title())+"): "+str(self.toolinformation)
         elif self.func == "shapewidth":
             #shape width change
             currtool = shapetool
@@ -1796,10 +1801,10 @@ class Button():
                 #stamp flipping
                 currtool.img = transform.flip(currtool.img,self.arg2[0],self.arg2[1]) #flips images of stamp
                 currtool.img2 = transform.flip(currtool.img2,self.arg2[0],self.arg2[1])
-            try:
-                currtool.icon = transform.smoothscale(currtool.img,(currtool.width,currtool.height)) #sets icon to have same size as new image
-            except:
-                currtool.icon = transform.scale(currtool.img,(currtool.width,currtool.height)) #sets icon to have same size as new image  
+                try:
+                    currtool.icon = transform.smoothscale(currtool.img,(currtool.width,currtool.height)) #sets icon to have same size as new image
+                except:
+                    currtool.icon = transform.scale(currtool.img,(currtool.width,currtool.height)) #sets icon to have same size as new image  
         elif self.func == "rotate":
             #rotate selected box button
             if currtool == selectool:
@@ -1809,7 +1814,8 @@ class Button():
             elif type(currtool) == Stamp:
                 #stamp rotation
                 currtool.img = transform.rotate(currtool.img,self.arg2) #rotates stamp's images
-                currtool.owidth,currtool.oheight,currtool.width,currtool.height = currtool.oheight,currtool.owidth,currtool.height,currtool.width #flips dimensions of stamp                
+                #flips dimensions of stamp
+                currtool.owidth,currtool.oheight,currtool.width,currtool.height = currtool.oheight,currtool.owidth,currtool.height,currtool.width
                 currtool.img2 = transform.rotate(currtool.img2,self.arg2)
                 currtool.owidth2,currtool.oheight2,currtool.width2,currtool.height2 = currtool.oheight2,currtool.owidth2,currtool.height2,currtool.width2
                 try:
@@ -1850,8 +1856,8 @@ class Button():
             #stamp page change button
             stampage += self.arg2
             stampage = max(min(stampage,len(stamps)-1),0) #Limits stamp page at 0 ~ len(stamps)-1
-            del tools[-6:]
-            tools += stamps[stampage] #sets new stamps in tools
+            del mainbuttons[-6:]
+            mainbuttons += stamps[stampage] #sets new stamps in mainbuttons
         elif self.func == "sizechange":
             #size change button
             currtool.scroll(screen,self.arg2) #scrolls image
@@ -1888,7 +1894,7 @@ class Button():
         elif self.func == shapetool:
             #if it's a shapetool we add extra text
             smallfont = font.SysFont("comicsansms",10) #small font
-            width = max(width,smallfont.render("[Scroll to change size, space to reset size]",True,BLOODRED).get_width()+20)
+            width = max(width,smallfont.render("[Scroll to change border-size, space to reset to fill mode]",True,BLOODRED).get_width()+20)
             draw.rect(screen,BLACK,(mx,my-40,width,40))
             screen.blit(comicsans.render(self.toolinformation,True,BLOODRED),(mx+5,my-35))
             screen.blit(smallfont.render("[Scroll to change border-size, space to reset to fill mode]",True,BLOODRED),(mx+5,my-17))
@@ -1978,10 +1984,10 @@ stampeditbuttons = [Button("flip",flipicon,240,400,"Flip stamp vertically",20,20
                     Button("flip",transform.rotate(flipicon,90),260,400,"Flip stamp horizontally",20,20,(True,False)),
                     Button("rotate",transform.flip(rotateicon,True,False),240,420,"Rotate stamp 90° counter-clockwise",20,20,90),
                     Button("rotate",rotateicon,260,420,"Rotate stamp 90° clockwise",20,20,-90)]
-#----TOOL VARIABLES----#
+#----BUTTONS FOR TOOLS AND STAMPS SELECTION----#
 currtool = penciltool #current tool
 #buttons of all tools user can press (as well as other buttons such as save and open)
-tools = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follows your mouse"),
+mainbuttons = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follows your mouse"),
          Button(erasertool,eraser,20,150,"Eraser: Erases things to give you a second chance at artful Deadication"),
          Button(brushtool,paintbrush,20,200,"Brush: Nice thick strokes"),
          Button(spraytool,spraycan,20,250,"Spray-paint: Colours random pixels at clicked location"),
@@ -1999,7 +2005,7 @@ tools = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that follow
          Button("redo",redoicon,1120,310,"Redo last undone action on canvas (Ctrl-Shift-Z)",60,60),
          Button("clear",clearicon,1120,380,"Clear the canvas (Ctrl-Space)",60,60),
          Button("paste",clipboard,1120,450,"Paste (Ctrl-V)",60,60)]
-savebutton,openbutton = 12,13 #keeps track of save button and open button index in tools list
+savebutton,openbutton = 12,13 #keeps track of save button and open button index in mainbuttons list
 #stamp's 2D list, each nested list contains the stamps for one stamp page
 stamps = [[Button(yunostamp,yunoface,600,690,"Paste the cute yet scary Yuno Gasai, of whom violence is no problem",50,50),
          Button(kotonohastamp,kotonohaface,660,690,"Paste the shy yet violent Kotonoha Katsura, who easily goes insane",50,50),
@@ -2023,7 +2029,7 @@ stamps = [[Button(yunostamp,yunoface,600,690,"Paste the cute yet scary Yuno Gasa
 stampchangebuttons = [Button("stampchange",comicsans.render(" <",True,BLACK),840,670,"Stamp page forward",20,20,-1),
                       Button("stampchange",comicsans.render(" >",True,BLACK),930,670,"Stamp page backward",20,20,1)]
 stampage = 0 #which stamp page are we on
-tools += stamps[0] #adds the first page of stamps to tools
+mainbuttons += stamps[0] #adds the first page of stamps to mainbuttons
 #----CANVAS----#
 canvas = Rect(300,50,800,600) #canvas rect
 draw.rect(screen,GREY,(299,49,802,602)) #draws canvas border
@@ -2069,11 +2075,12 @@ lcolbutton = Button("addcustom",Rect(300,656,30,30),300,656,"",30,30,lcol) #left
 rcolbutton = Button("addcustom",Rect(332,656,30,30),332,656,"",30,30,rcol) #right mouse color buttons
 rcolbutton.selected = True #not really selected, but this allows for the right mouse color button to have a red border
 #----INFO BUTTONS----#
-#buttons that don't do anything but display info
+#buttons that don't do anything but display info when user hovers
 infobuttons = [Button("",infobox,364,656,"To the left are MOUSE COLOUR INDICATORS - click them to add to CUSTOM COLOURS",19,19),
                Button("",infobox,20,399,"This translucent light-grey box is a TOOL INFORMATION BOX; it displays information about the current tool",19,19),
                Button("",infobox,20,476,"This dark grey box contains COLOUR CHANGE BUTTONS that change your mouse color as well as CUSTOM COLOURS",19,19),
-               Button("",infobox,20,526,"The colorful box below is the COLOUR PALETTE, which allows you to select a large variety of colors",19,19)]
+               Button("",infobox,20,526,"The colorful box below is the COLOUR PALETTE, which allows you to select a large variety of colors",19,19),
+               Button("",infobox,555,672,"Below is a GRADIENT SELECTOR. Left or right click on it to change color",19,19)]
 #----TOOL INFO BOX----#
 toolinfo_box = Surface((260,66),SRCALPHA)
 draw.rect(toolinfo_box,(185,185,185,185),(0,0,260,66))
@@ -2179,7 +2186,7 @@ while running:
                 if volslide.istouch():
                     lastclick = "volslide"
                     continue
-                #following loop checks for tools/buttons and if we clicked them or not
+                #following loop checks for buttons and if we clicked them or not
                 if currtool == textool:
                     for b in fontsizebuttons:
                         if b.istouch():
@@ -2242,20 +2249,20 @@ while running:
                 screen.set_clip(canvas)
                 currtool.outside() #runs current tool's outside function, as user clicked outside of canvas
                 screen.set_clip(None)
-                for t in tools:
-                    if t.istouch():
-                        if t.func in ["save","open"]:
-                            buttonheld = t #makes t the button held
+                for b in mainbuttons:
+                    if b.istouch():
+                        if b.func in ["save","open"]:
+                            buttonheld = b #makes b the button held
                             break #doesn't do it on mouse down for save and open - does it on mouseup to avoid it acting funny
-                        if t.func != currtool:
+                        if b.func != currtool:
                             screen.blit(toolboxfiller,(20,90)) #blits toolbox when user changes tools
                             #tool button clicked
                             if e.button == 3:
                                 #handles right clicking on button
-                                t.clickon(screen,True)
+                                b.clickon(screen,True)
                             else:
                                 #handles left clicking on button
-                                t.clickon(screen)
+                                b.clickon(screen)
                         break
             if lastclick != "fontdropdown":
                 fontdropdown.menudown = False #turns off menu in fontdropdown if it was not clicked
@@ -2271,7 +2278,7 @@ while running:
                 #checks if user clicked a tool button
                 #does on mouseup so save and open don't act all funny
                 for i in [savebutton,openbutton]:
-                    opt = tools[i] #option (save or open) selected
+                    opt = mainbuttons[i] #option (save or open) selected
                     if opt.istouch():                
                         if e.button == 3:
                             #handles right clicking on button
@@ -2410,7 +2417,7 @@ while running:
     #----DRAWING GRADIENT SELECTOR----#
     gradsel.draw(screen)
     #----DRAWING BUTTONS----#
-    for b in tools+infobuttons:
+    for b in mainbuttons+infobuttons:
         b.display(screen)
     if currtool == textool:
         #draws fontsizebuttons if textool is current tool
@@ -2566,26 +2573,10 @@ while running:
             screen.blit(comicsans.render(str(currtool.width)+"px x "+str(currtool.height)+"px",True,BLACK),(120,413))
     #HANDLES DROP DOWN MENUS' MENU
     if fontdropdown.menudown:
-        for i in fontdropdown.items:
-            #sets all highlighted items in dropdown menu to highlighted or unhighlighted
-            if i.istouch():
-                i.highlighted = True
-            else:
-                i.highlighted = False
         fontdropdown.dropdown(screen) #draws menu items
     if shapedropdown.menudown:
-        for i in shapedropdown.items:
-            if i.istouch():
-                i.highlighted = True
-            else:
-                i.highlighted = False
         shapedropdown.dropdown(screen)
     if backdropdown.menudown:
-        for i in backdropdown.items:
-            if i.istouch():
-                i.highlighted = True
-            else:
-                i.highlighted = False
         backdropdown.dropdown(screen)
     #DRAWS TEXTBOX IF THE TEXT TOOL IS SELECTED AND A TEXTBOX IS OPEN
     screen.set_clip(canvas)
@@ -2618,7 +2609,7 @@ while running:
     screen.blit(lucidaconsole.render("FPS: "+str(round(fpstracker.get_fps(),1)),True,BLACK),(5,7))
     #DRAWS TOOL INFORMATION BOX
     #following loop displays tool information if the mouse is touching a tool button or an info button
-    for b in tools+infobuttons:
+    for b in mainbuttons+infobuttons:
         if b.istouch():
             b.disptoolinformation(screen)
             break
