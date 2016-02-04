@@ -2002,7 +2002,7 @@ mainbuttons = [Button(penciltool,pencilsprite,20,100,"Pencil: 1 pixel line that 
          Button(spraytool,spraycan,20,250,"Spray-paint: Colours random pixels at clicked location"),
          Button(selectortool,dropper,20,300,"Colour selector: Change your mouse colour to colour at clicked location"),
          Button(textool,fancyA,20,350,"Text tool: Write some Deadicated text"),
-         Button(selectool,dottedbox,80,100,"Select tool: Select an area and manipulate with Deadication"),
+         Button(selectool,dottedbox,80,100,"Select tool: Select an area and manipulate with Deadication - you can right click selected area for more"),
          Button(linetool,linesprite,80,150,"Line tool: Draw a line"),
          Button(shapetool,roundedrect,80,200,"Shape tool (Rect): Draw a rectangle by clicking and dragging"),
          Button(filltool,fillbucket,80,250,"Fill tool: Fill an area with a colour (Warning: uses a lot of CPU)"),
