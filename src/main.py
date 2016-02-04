@@ -32,12 +32,22 @@ display.flip()
 #MUSIC (Really lags up the program startup)
 init()
 mixer.init()
-music = [mixer.Sound("music/My_Dearest.ogg"),
-        mixer.Sound("music/MiraiNikkiOP.ogg"),
-        mixer.Sound("music/InnocentBlue.ogg"),
-        mixer.Sound("music/Lillium.ogg"),
-        mixer.Sound("music/BoukenDesho.ogg"),
-        mixer.Sound("music/NeverSayNever.ogg")]
+music = [mixer.Sound("music/My_Dearest.ogg")]
+draw.rect(screen,(255,0,0),(143,466,137,27))
+display.flip()
+music.append(mixer.Sound("music/MiraiNikkiOP.ogg"))
+draw.rect(screen,(255,0,0),(143,466,194,27))
+display.flip()
+music.append(mixer.Sound("music/InnocentBlue.ogg"))
+draw.rect(screen,(255,0,0),(143,466,251,27))
+display.flip()
+music.append(mixer.Sound("music/Lillium.ogg"))
+draw.rect(screen,(255,0,0),(143,466,308,27))
+display.flip()
+music.append(mixer.Sound("music/BoukenDesho.ogg"))
+draw.rect(screen,(255,0,0),(143,466,365,27))
+display.flip()
+music.append(mixer.Sound("music/NeverSayNever.ogg"))
 '''
 '''
 shuffle(music) #shuffles the music
